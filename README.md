@@ -28,9 +28,9 @@ npm run dev
 1. Suba esta pasta para um repositório no GitHub.
 2. No Vercel: **Add New → Project** → importe o repositório (framework: Next.js, sem configuração extra).
 3. Em **Settings → Environment Variables**, defina:
-   - `ANTHROPIC_API_KEY` — sua chave em console.anthropic.com
-   - `ACCESS_CODE` — um código que só você sabe (evita que estranhos gastem sua chave). Digite o mesmo código na aba **Extras & Clube** do site.
-   - `ANTHROPIC_MODEL` — opcional (padrão `claude-sonnet-5-5`)
+   - **Gratuito:** `AI_PROVIDER=gemini` e `GEMINI_API_KEY` (chave grátis em aistudio.google.com/apikey, sem cartão). Opcional: `GEMINI_MODEL` (padrão `gemini-2.5-flash`).
+   - **Ou Claude (pago por uso):** `AI_PROVIDER=anthropic` e `ANTHROPIC_API_KEY`. Opcional: `ANTHROPIC_MODEL`.
+   - `ACCESS_CODE` — um código que só você sabe (evita que estranhos usem sua chave). Digite o mesmo código na aba **Extras & Clube** do site.
 4. Faça o deploy.
 
 ## Notas técnicas

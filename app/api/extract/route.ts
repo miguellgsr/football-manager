@@ -22,12 +22,7 @@ export async function POST(req: Request) {
   try {
     const { images } = (await req.json()) as { images: string[] };
     if (!images?.length) return Response.json({ error: "Nenhuma imagem enviada." }, { status: 400 });
-    const content: any[] = images.map((data) => ({
-      type: "image",
-      source: { type: "base64", media_type: "image/jpeg", data },
-    }));
-    content.push({ type: "text", text: "Extraia os jogadores destes prints." });
-    const out = await askJSON({ system: SYSTEM, content, maxTokens: 8000 });
+    const out = await askJSON({ system: SYSTEM, text: "Extraia os jogadores destes prints.", images, maxTokens: 8000 });
     return Response.json(out);
   } catch (e) {
     return errorResponse(e);

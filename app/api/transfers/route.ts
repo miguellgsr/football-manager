@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const text = `DADOS (JSON):\n${JSON.stringify(body)}\n\nAnalise e devolva o JSON no formato pedido.`;
-    const out = await askJSON({ system: SYSTEM, content: text, maxTokens: 6000 });
+    const out = await askJSON({ system: SYSTEM, text, maxTokens: 6000 });
     return Response.json(out);
   } catch (e) {
     return errorResponse(e);
