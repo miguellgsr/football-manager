@@ -179,3 +179,8 @@ ul.clean { margin: .3rem 0 .5rem 1.1rem; padding: 0; }
 .sel-grp.open .arrow { transform: rotate(90deg); color: var(--accent); }
 .sel-sub { margin: 1px 0 4px .8rem; padding-left: .4rem; border-left: 1px solid var(--line); }
 .sel-sub .sel-opt { font-size: .95rem; font-weight: 500; }
+
+/* campo tático em grade (FM) */
+.gcell { position: absolute; width: 17%; height: 9%; transform: translate(-50%, -50%); border-radius: 8px; border: 1px solid rgba(160,255,120,.35); background: rgba(6,40,30,.55); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; z-index: 0; pointer-events: none; }
+.gcell.hot { border: 2px solid #9bff5a; background: rgba(120,255,80,.28); }
+.gcell.swap { z-index: 2; background: rgba(120,255,80,.12); }

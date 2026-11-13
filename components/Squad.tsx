@@ -2,7 +2,8 @@
 import { Select } from "./Dropdown";
 import { useMemo, useRef, useState } from "react";
 import { effectiveSlots } from "@/lib/board";
-import { FM_ROLES, DUTY_SHORT, findRole, posFromXY, roleFit } from "@/lib/fmroles";
+import { cellXY, COLS, ROWS, snapCell, posFromCell } from "@/lib/grid";
+import { FM_ROLES, DUTY_SHORT, findRole } from "@/lib/fmroles";
 import { FORMATIONS, NEIGHBORS } from "@/lib/formations";
 import { bestOverall, bestRoleFor } from "@/lib/roles";
 import { Player, Pos, uid } from "@/lib/types";
@@ -51,19 +52,36 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     drag.current = { i, sx: e.clientX, sy: e.clientY, moved: false };
   };
-  const onMove = (e: React.PointerEvent) => {
-    const d = drag.current, el = pitchRef.current;
-    if (!d || !el) return;
-    if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 5) return;
-    d.moved = true;
+  const cellAt = (e: React.PointerEvent) => {
+    const el = pitchRef.current;
+    if (!el) return null;
     const r = el.getBoundingClientRect();
-    const x = Math.max(4, Math.min(96, ((e.clientX - r.left) / r.width) * 100));
-    const y = Math.max(6, Math.min(94, ((e.clientY - r.top) / r.height) * 100));
-    patchSlot(d.i, { x: Math.round(x), y: Math.round(y), pos: posFromXY(x, y, slots[d.i].pos) });
+    return snapCell(((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100);
   };
-  const onUp = (i: number) => {
+  const [target, setTarget] = useState<{ c: number; r: number } | null>(null);
+  const [dragging, setDragging] = useState<number | null>(null);
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 5) return;
+    d.moved = true; setDragging(d.i);
+    setTarget(cellAt(e));
+  };
+  const onUp = (e: React.PointerEvent, i: number) => {
     const d = drag.current; drag.current = null;
-    if (d && !d.moved) setPicking(i);
+    setTarget(null); setDragging(null);
+    if (!d) return;
+    if (!d.moved) { setPicking(i); return; }
+    const t = cellAt(e);
+    if (!t) return;
+    const other = slots.findIndex((x, k) => k !== i && x.c === t.c && x.r === t.r);
+    const me = slots[i];
+    if (other >= 0) {
+      // troca de células entre os dois jogadores
+      const o = slots[other];
+      patchSlot(i, { ...cellXY(t.c, t.r), pos: posFromCell(t.c, t.r, me.pos) });
+      patchSlot(other, { ...cellXY(me.c, me.r), pos: posFromCell(me.c, me.r, o.pos) });
+    } else patchSlot(i, { ...cellXY(t.c, t.r), pos: posFromCell(t.c, t.r, me.pos) });
   };
 
   const save = (p: Player) =>
@@ -130,13 +148,23 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
           <div className="pitchwrap">
             <div className="pitch" ref={pitchRef}>
               <PitchLines />
+              {Array.from({ length: ROWS * COLS }, (_, k) => {
+                const c = k % COLS, r = Math.floor(k / COLS);
+                if (slots.some((x) => x.c === c && x.r === r)) return null;
+                const { x, y } = cellXY(c, r);
+                const hot = target && target.c === c && target.r === r;
+                return <div key={"g" + k} className={"gcell" + (hot ? " hot" : "")} style={{ left: x + "%", top: y + "%" }}>+</div>;
+              })}
+              {target && dragging !== null && slots.some((x, k) => k !== dragging && x.c === target.c && x.r === target.r) && (
+                <div className="gcell hot swap" style={{ left: cellXY(target.c, target.r).x + "%", top: cellXY(target.c, target.r).y + "%" }}>⇄</div>
+              )}
               {slots.map((sl, i) => {
                 const pid = state.lineup[String(i)];
                 const pl = pid ? state.players.find((p) => p.id === pid) : undefined;
                 const fit = pl ? fitFor(pl, sl.pos) : null;
                 return (
-                  <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%", touchAction: "none", cursor: "grab" }}
-                    onPointerDown={(e) => onDown(e, i)} onPointerMove={onMove} onPointerUp={() => onUp(i)}
+                  <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%", touchAction: "none", cursor: "grab", opacity: dragging === i ? .45 : 1 }}
+                    onPointerDown={(e) => onDown(e, i)} onPointerMove={onMove} onPointerUp={(e) => onUp(e, i)}
                     title={fit ? `Encaixe ${fit.score ?? "?"}${fit.natural ? "" : fit.cover ? " · posição próxima" : " · fora de posição"}` : "Escolher jogador"}>
                     <Shirt n={i + 1} />
                     <div className="card-fm">
