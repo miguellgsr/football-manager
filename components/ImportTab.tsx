@@ -36,6 +36,7 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
   const [preview, setPreview] = useState<(Player & { keep: boolean })[]>([]);
   const [target, setTarget] = useState<Player["status"]>("squad");
   const [editing, setEditing] = useState<Player | null>(null);
+  const [editingPreview, setEditingPreview] = useState<Player | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = (list: FileList | null) => {
@@ -55,11 +56,11 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
   }, []);
 
   const call = async (images: string[], m: "single" | "list") => {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
         return await callApi<{ players: any[]; warnings?: string[] }>("/api/extract", { images, mode: m }, accessCode);
       } catch (e: any) {
-        if (attempt < 2 && /limite|429|quota|demanda|overload|sobrecarreg/i.test(e.message)) { await sleep(7000); continue; }
+        if (attempt < 3 && /limite|429|quota|demanda|overload|sobrecarreg|Erro 5\d\d|tempo|timeout|failed to fetch|network/i.test(e.message)) { await sleep(5000 * (attempt + 1)); continue; }
         throw e;
       }
     }
@@ -72,6 +73,7 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
       const found: Player[] = [];
       const warns: string[] = [];
       const errors: string[] = [];
+      const failed: File[] = [];
       if (mode === "each") {
         for (let i = 0; i < files.length; i++) {
           setProgress(`Lendo print ${i + 1} de ${files.length}…`);
@@ -79,9 +81,9 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
             const img = await fileToJpegBase64(files[i]);
             const out = await call([img], "single");
             const p = (out.players ?? [])[0];
-            if (p?.name) found.push(toPlayer(p, target)); else errors.push(`Print ${i + 1} (${files[i].name}): não consegui identificar o jogador.`);
+            if (p?.name) found.push(toPlayer(p, target)); else { failed.push(files[i]); errors.push(`Print ${i + 1}: não consegui identificar o jogador.`); }
             warns.push(...(out.warnings ?? []).map((w) => `Print ${i + 1}: ${w}`));
-          } catch (e: any) { errors.push(`Print ${i + 1} (${files[i].name}): ${e.message}`); }
+          } catch (e: any) { failed.push(files[i]); errors.push(`Print ${i + 1}: ${e.message}`); }
           if (i < files.length - 1) await sleep(800);
         }
       } else if (mode === "same") {
@@ -101,12 +103,14 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
           warns.push(...(out.warnings ?? []));
         }
       }
-      const merged = mergePlayers([], found);
-      setPreview(merged.map((p) => ({ ...p, keep: true })));
+      const merged = mergePlayers(preview.map(({ keep, ...p }) => p), found);
+      const keepMap = new Map(preview.map((p) => [p.name.toLowerCase(), p.keep]));
+      setPreview(merged.map((p) => ({ ...p, keep: keepMap.get(p.name.toLowerCase()) ?? true })));
       setWarnings([...warns, ...errors]);
-      setMsg(merged.length
-        ? { t: "ok", text: `${merged.length} jogador(es) lidos. Confira abaixo antes de adicionar.` }
-        : { t: "err", text: "Nenhum jogador foi lido." });
+      if (mode === "each") setFiles(failed); // só os que falharam ficam na fila para tentar de novo
+      setMsg(found.length
+        ? { t: failed.length ? "err" : "ok", text: `${found.length} jogador(es) lidos${failed.length ? `; ${failed.length} print(s) falharam e continuam na fila: clique em ler de novo` : ". Confira abaixo antes de adicionar"}.` }
+        : { t: "err", text: "Nenhum jogador foi lido. Os prints continuam na fila para tentar de novo." });
     } catch (e: any) {
       setMsg({ t: "err", text: e.message });
     } finally { setBusy(false); setProgress(""); }
@@ -205,8 +209,8 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
             <thead><tr><th></th><th>Nome</th><th>Pos</th><th>Idade</th><th>Atributos lidos</th><th>Contrato</th></tr></thead>
             <tbody>
               {preview.map((p, i) => (
-                <tr key={p.id}>
-                  <td><input type="checkbox" style={{ width: "auto" }} checked={p.keep} onChange={(e) => setPreview((x) => x.map((y, j) => (j === i ? { ...y, keep: e.target.checked } : y)))} /></td>
+                <tr key={p.id} className="click" onClick={() => setEditingPreview(p)}>
+                  <td onClick={(e) => e.stopPropagation()}><input type="checkbox" style={{ width: "auto" }} checked={p.keep} onChange={(e) => setPreview((x) => x.map((y, j) => (j === i ? { ...y, keep: e.target.checked } : y)))} /></td>
                   <td>{p.name}</td>
                   <td>{p.positions.join(", ") || <span className="err">sem posição</span>}</td>
                   <td>{p.age ?? "—"}</td>
@@ -216,7 +220,7 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
               ))}
             </tbody>
           </table>
-          <p className="mute" style={{ fontSize: ".85rem" }}>Revise valores duvidosos depois, clicando no jogador. Jogadores sem posição não aparecem no Planejamento.</p>
+          <p className="mute" style={{ fontSize: ".85rem" }}>Clique em uma linha para corrigir nome, posição ou atributos antes de adicionar. Jogadores sem posição não aparecem no Planejamento.</p>
           <div className="row">
             <button className="btn" onClick={commit}>Adicionar {preview.filter((p) => p.keep).length} jogador(es)</button>
             <button className="btn ghost" onClick={() => setPreview([])}>Descartar</button>
@@ -225,6 +229,14 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
       )}
 
       </div></div></div>
+
+      {editingPreview && (
+        <PlayerEditor
+          player={editingPreview}
+          onClose={() => setEditingPreview(null)}
+          onSave={(p) => { setPreview((x) => x.map((y) => (y.id === p.id ? { ...p, keep: y.keep } : y))); setEditingPreview(null); }}
+        />
+      )}
 
       {editing && (
         <PlayerEditor
