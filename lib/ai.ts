@@ -77,31 +77,38 @@ async function callAnthropic(system: string, opts: { text: string; images?: stri
   return res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
 }
 
+const GEMINI_FALLBACKS = (process.env.GEMINI_FALLBACK_MODELS || "gemini-3.7-flash,gemini-3.5-flash-lite").split(",").map((m) => m.trim()).filter(Boolean);
+
 async function callGemini(system: string, opts: { text: string; images?: string[]; history?: HistoryItem[]; maxTokens?: number }) {
   const parts: any[] = [
     ...(opts.images ?? []).map((data) => ({ inlineData: { mimeType: "image/jpeg", data } })),
     { text: opts.text },
   ];
-  let res!: Response;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-    {
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [
+      ...cleanHistory(opts.history).map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] })),
+      { role: "user", parts },
+    ],
+    generationConfig: { responseMimeType: "application/json", maxOutputTokens: opts.maxTokens ?? 4000 },
+  });
+  const call = (model: string) =>
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [
-          ...cleanHistory(opts.history).map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] })),
-          { role: "user", parts },
-        ],
-        generationConfig: { responseMimeType: "application/json", maxOutputTokens: opts.maxTokens ?? 4000 },
-      }),
+      body,
+    });
+
+  // modelo principal e, se estiver sobrecarregado/indisponível, os reservas (GEMINI_FALLBACK_MODELS)
+  const models = [GEMINI_MODEL, ...GEMINI_FALLBACKS.filter((m) => m !== GEMINI_MODEL)];
+  let res!: Response;
+  for (let mi = 0; mi < models.length; mi++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      res = await call(models[mi]);
+      if (![500, 502, 503].includes(res.status)) break;
+      await new Promise((r) => setTimeout(r, 1500));
     }
-    );
-    // alta demanda / erro temporário do Google: espera e tenta de novo
-    if (res.status !== 503 && res.status !== 500 && res.status !== 502) break;
-    await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+    if (res.ok || ![500, 502, 503, 404, 429].includes(res.status)) break;
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
