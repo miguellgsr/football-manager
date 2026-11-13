@@ -27,10 +27,13 @@ export function guard(req: Request): Response | null {
 }
 
 /** Entrada simples e independente de provedor: texto + imagens JPEG em base64. */
+export interface HistoryItem { role: "user" | "assistant"; text: string }
+
 export async function askJSON(opts: {
   system: string;
   text: string;
   images?: string[];
+  history?: HistoryItem[];
   maxTokens?: number;
 }): Promise<any> {
   const system = opts.system + "\n\nResponda SOMENTE com um objeto JSON válido, sem markdown e sem texto fora do JSON.";
@@ -41,7 +44,20 @@ export async function askJSON(opts: {
   return JSON.parse(raw.slice(start, end + 1));
 }
 
-async function callAnthropic(system: string, opts: { text: string; images?: string[]; maxTokens?: number }) {
+/** Mantém só mensagens não vazias, começando por uma do usuário e alternando papéis. */
+function cleanHistory(h?: HistoryItem[]): HistoryItem[] {
+  const out: HistoryItem[] = [];
+  for (const m of h ?? []) {
+    if (!m.text?.trim()) continue;
+    if (out.length === 0 && m.role !== "user") continue;
+    if (out.length && out[out.length - 1].role === m.role) { out[out.length - 1] = m; continue; }
+    out.push(m);
+  }
+  if (out.length && out[out.length - 1].role === "user") out.pop(); // a próxima mensagem já é do usuário
+  return out;
+}
+
+async function callAnthropic(system: string, opts: { text: string; images?: string[]; history?: HistoryItem[]; maxTokens?: number }) {
   const client = new Anthropic();
   const content: Anthropic.MessageParam["content"] = [
     ...(opts.images ?? []).map(
@@ -53,12 +69,15 @@ async function callAnthropic(system: string, opts: { text: string; images?: stri
     model: ANTHROPIC_MODEL,
     max_tokens: opts.maxTokens ?? 4000,
     system,
-    messages: [{ role: "user", content }],
+    messages: [
+      ...cleanHistory(opts.history).map((h) => ({ role: h.role, content: h.text }) as Anthropic.MessageParam),
+      { role: "user", content },
+    ],
   });
   return res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
 }
 
-async function callGemini(system: string, opts: { text: string; images?: string[]; maxTokens?: number }) {
+async function callGemini(system: string, opts: { text: string; images?: string[]; history?: HistoryItem[]; maxTokens?: number }) {
   const parts: any[] = [
     ...(opts.images ?? []).map((data) => ({ inlineData: { mimeType: "image/jpeg", data } })),
     { text: opts.text },
@@ -70,7 +89,10 @@ async function callGemini(system: string, opts: { text: string; images?: string[
       headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts }],
+        contents: [
+          ...cleanHistory(opts.history).map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] })),
+          { role: "user", parts },
+        ],
         generationConfig: { responseMimeType: "application/json", maxOutputTokens: opts.maxTokens ?? 4000 },
       }),
     }

@@ -7,7 +7,7 @@ import { ATTR_GROUPS, initialState, Player, State } from "@/lib/types";
 import PlayerEditor from "./PlayerEditor";
 import { scoreClass } from "./Squad";
 
-export default function Extras({ state, setState }: Props) {
+export default function Extras({ state, setState, accessCode, setAccessCode, saveName }: Props & { saveName: string }) {
   const [editing, setEditing] = useState<Player | null>(null);
   const [a, setA] = useState("");
   const [b, setB] = useState("");
@@ -34,7 +34,7 @@ export default function Extras({ state, setState }: Props) {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const el = document.createElement("a");
-    el.href = url; el.download = "fm-planner-backup.json"; el.click();
+    el.href = url; el.download = `fm-planner-${saveName.replace(/\W+/g, "-").toLowerCase()}.json`; el.click();
     URL.revokeObjectURL(url);
   };
   const importJson = async (f?: File) => {
@@ -45,7 +45,7 @@ export default function Extras({ state, setState }: Props) {
   return (
     <>
       <div className="card">
-        <h2>Clube</h2>
+        <h2>Clube — {saveName}</h2>
         <div className="grid2">
           <div className="field"><label>Nome do clube</label><input value={state.club.name} onChange={(e) => setClub({ name: e.target.value })} /></div>
           <div className="field"><label>Estilo / filosofia desejada</label><input value={state.club.style} onChange={(e) => setClub({ style: e.target.value })} placeholder="Ex.: posse e pressão alta, jovens do clube…" /></div>
@@ -54,7 +54,8 @@ export default function Extras({ state, setState }: Props) {
         </div>
         <div className="field" style={{ maxWidth: 340 }}>
           <label>Código de acesso (se você configurou ACCESS_CODE no Vercel)</label>
-          <input type="password" value={state.accessCode} onChange={(e) => setState((s) => ({ ...s, accessCode: e.target.value }))} />
+          <input type="password" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} />
+          <div className="mute" style={{ fontSize: ".75rem", marginTop: ".2rem" }}>Vale para todos os saves deste navegador.</div>
         </div>
       </div>
 
@@ -133,15 +134,15 @@ export default function Extras({ state, setState }: Props) {
       </div>
 
       <div className="card">
-        <h2>Backup dos dados</h2>
-        <p className="mute">Seus dados ficam salvos no navegador deste dispositivo. Exporte um backup para levar a outro aparelho.</p>
+        <h2>Backup deste save</h2>
+        <p className="mute">Os dados ficam salvos neste navegador. Exporte um backup para levar este save a outro aparelho (na tela inicial há “Importar backup”).</p>
         <div className="row">
           <button className="btn ghost" onClick={exportJson}>Exportar backup (.json)</button>
           <label className="btn ghost" style={{ margin: 0, cursor: "pointer", color: "var(--text)", fontSize: "1rem" }}>
             Restaurar backup
             <input type="file" accept="application/json" style={{ display: "none" }} onChange={(e) => importJson(e.target.files?.[0])} />
           </label>
-          <button className="btn danger" onClick={() => { if (confirm("Apagar todos os dados?")) setState(initialState); }}>Apagar tudo</button>
+          <button className="btn danger" onClick={() => { if (confirm("Apagar todos os jogadores e a conversa deste save?")) setState(initialState); }}>Esvaziar este save</button>
         </div>
       </div>
 

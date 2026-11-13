@@ -15,6 +15,14 @@ Também há importação de CSV/HTML (caso use um save offline com exportação)
 
 > Atributos escondidos (mostrados como "?" ou em intervalo) são ignorados. Revise os números lidos clicando no jogador.
 
+## Saves, abas e IA
+
+- **Home:** escolha, crie, renomeie, exporte ou exclua saves. Cada save tem elenco, shortlist, escalação, táticas e conversa de transferências separados.
+- **Planejamento:** todos os jogadores no campo por posição, com lacunas (sem jogador / sem reserva), idade e nível técnico, para a formação de referência.
+- **Importar:** um print por jogador, vários prints do mesmo jogador, ou prints de listas. Ctrl+V cola um print.
+- **Transferências IA:** chat que lê o elenco e a shortlist; aceita prints (ex.: um jogador de referência para achar parecidos).
+- **Táticas IA:** lê o elenco completo, compara formações/estilos e recomenda a melhor combinação.
+
 ## Rodar localmente
 
 ```bash

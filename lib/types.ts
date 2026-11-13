@@ -28,12 +28,28 @@ export interface Club {
   style: string; // filosofia/estilo desejado
 }
 
+export interface ChatMsg {
+  role: "user" | "assistant";
+  text: string;
+  ts: number;
+  images?: number; // quantos prints foram anexados (as imagens não são guardadas)
+  data?: any; // dados estruturados da resposta da IA
+}
+
+export interface SaveMeta {
+  id: string;
+  name: string;
+  club?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface State {
   club: Club;
   players: Player[];
   formation: string;
   lineup: Record<string, string>; // índice do slot -> id do jogador
-  accessCode: string;
+  chat: ChatMsg[];
 }
 
 export const initialState: State = {
@@ -41,7 +57,7 @@ export const initialState: State = {
   players: [],
   formation: "4-3-3",
   lineup: {},
-  accessCode: "",
+  chat: [],
 };
 
 export const ATTR_GROUPS: { title: string; keys: [string, string][] }[] = [

@@ -1,10 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { callApi, Props } from "@/lib/client";
 import { compactPlayer } from "@/lib/import";
+import { evaluateAll, summarizeEval } from "@/lib/analysis";
 import { FORMATIONS } from "@/lib/formations";
+import { scoreClass } from "./Squad";
 
 interface Result {
+  candidates?: { formation: string; style: string; fit: number; why: string; risk: string }[];
+  best?: string;
   formation: string; mentality: string; reasoning: string;
   inPossession: string[]; outOfPossession: string[]; transition: string[];
   lineup: { slot: string; playerId: string; role: string; duty: string; why: string }[];
@@ -12,7 +16,7 @@ interface Result {
   setPieces: string; alternativePlan: string;
 }
 
-export default function Tactics({ state }: Props) {
+export default function Tactics({ state, accessCode }: Props) {
   const [extra, setExtra] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -21,14 +25,18 @@ export default function Tactics({ state }: Props) {
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
   const slots = FORMATIONS[state.formation] ?? [];
   const lineup = Object.entries(state.lineup).map(([i, id]) => ({ slot: slots[+i]?.pos, playerId: id }));
+  const evals = useMemo(() => evaluateAll(squad), [state.players]); // eslint-disable-line
+  const withAttrs = squad.filter((p) => Object.keys(p.attrs).length >= 8).length;
 
   const run = async () => {
     setBusy(true); setErr(""); setRes(null);
     try {
       setRes(await callApi<Result>("/api/tactics", {
         club: state.club, formation: state.formation, currentLineup: lineup,
-        squad: squad.map(compactPlayer), extraInstructions: extra,
-      }, state.accessCode));
+        squad: squad.map(compactPlayer),
+        localFit: evals.slice(0, 5).map((e) => summarizeEval(e, squad)),
+        extraInstructions: extra,
+      }, accessCode));
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   };
 
@@ -39,19 +47,54 @@ export default function Tactics({ state }: Props) {
   return (
     <>
       <div className="card">
-        <h2>Sugestões táticas com IA</h2>
-        <p className="mute">A IA monta a abordagem para o seu elenco real: mentalidade, instruções, função de cada titular pelos atributos e como esconder os pontos fracos. Formação atual: {state.formation} ({lineup.length}/11 titulares definidos na aba Elenco).</p>
+        <h2>Táticas com IA</h2>
+        <p className="mute">A IA lê o seu elenco completo ({squad.length} jogadores, {withAttrs} com atributos), compara formações e estilos de jogo e recomenda o que melhor encaixa, com a função de cada titular.</p>
+        {squad.length > 0 && withAttrs < squad.length && <p className="err" style={{ fontSize: ".85rem" }}>{squad.length - withAttrs} jogador(es) sem atributos suficientes: a análise fica menos precisa. Importe os atributos pelos prints.</p>}
         <div className="field">
           <label>Instruções extras (opcional)</label>
           <textarea value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="Ex.: quero pressão alta e posse; jogo contra time mais forte, preciso de contra-ataque…" />
         </div>
-        <button className="btn" disabled={busy || squad.length < 11} onClick={run}>{busy ? "Analisando…" : "Sugerir tática"}</button>
+        <button className="btn" disabled={busy || squad.length < 11} onClick={run}>{busy ? "Analisando o elenco…" : "Analisar tática e estilo ideais"}</button>
         {squad.length < 11 && <span className="mute"> Importe pelo menos 11 jogadores.</span>}
         {err && <p className="err">{err}</p>}
       </div>
 
+      {squad.length >= 11 && (
+        <div className="card">
+          <h2>Encaixe do elenco por formação (cálculo local)</h2>
+          <p className="mute" style={{ fontSize: ".85rem" }}>Melhor 11 possível em cada formação, pelo encaixe dos atributos na função de cada posição (0–100). Jogador fora de posição perde 10 pontos.</p>
+          <table>
+            <thead><tr><th>Formação</th><th>Encaixe médio</th><th>Posições sem jogador</th><th>Fora de posição</th></tr></thead>
+            <tbody>
+              {evals.map((e) => (
+                <tr key={e.formation}>
+                  <td><b>{e.formation}</b></td>
+                  <td><span className={"score " + scoreClass(e.avg)}>{e.avg}</span></td>
+                  <td>{e.assigns.filter((a) => !a.playerId).map((a) => a.pos).join(", ") || "—"}</td>
+                  <td>{e.assigns.filter((a) => a.playerId && !a.natural).length}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {res && (
         <>
+          {!!res.candidates?.length && (
+            <div className="card">
+              <h2>Combinações avaliadas pela IA</h2>
+              <table>
+                <thead><tr><th>Formação e estilo</th><th>Encaixe</th><th>Por quê</th><th>Risco</th></tr></thead>
+                <tbody>
+                  {[...res.candidates].sort((a, b) => b.fit - a.fit).map((c, i) => (
+                    <tr key={i}><td><b>{c.formation}</b><div className="mute" style={{ fontSize: ".85rem" }}>{c.style}</div></td><td><span className={"score " + scoreClass(c.fit)}>{c.fit}</span></td><td>{c.why}</td><td>{c.risk}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+              {res.best && <p><b>Recomendada:</b> {res.best}</p>}
+            </div>
+          )}
           <div className="card">
             <div className="row"><h2 style={{ margin: 0 }}>{res.formation}</h2><span className="tag">{res.mentality}</span></div>
             <p className="pre">{res.reasoning}</p>
