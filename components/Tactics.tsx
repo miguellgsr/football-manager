@@ -84,7 +84,7 @@ export default function Tactics({ state, setState, accessCode }: Props) {
           <tbody>
             {slots.map((sl, i) => {
               const pl = state.players.find((p) => p.id === state.lineup[String(i)]);
-              const fit = pl ? roleFit(pl, sl.pos, sl.ip, sl.oop) : null;
+              const fit = pl ? roleFit(pl, sl.pos, sl.ip, sl.oop, sl.wide) : null;
               return (
                 <tr key={i}>
                   <td>{i + 1}</td><td>{sl.pos}</td><td>{pl ? pl.name : <span className="mute">—</span>}</td>

@@ -1,5 +1,5 @@
-import { roleScore, ROLES } from "./roles";
-import type { Player, Pos } from "./types";
+import { ROLE_ATTRS } from "./roleattrs";
+import { ATTR_GROUPS, Player, Pos } from "./types";
 
 /** Sistema de funções do FM novo: cada jogador tem uma função COM a bola e outra SEM a bola. */
 export interface RoleSet { ip: string[]; oop: string[] }
@@ -68,29 +68,53 @@ export function roleKey(pos: Pos, wide = false): RoleKey {
 }
 export const rolesFor = (pos: Pos, wide = false): RoleSet => ROLE_SETS[roleKey(pos, wide)];
 
-/** Função-base (pesos de atributos em lib/roles.ts) que melhor aproxima cada função nova. */
-function baseFor(pos: Pos, name: string): string {
-  const n = name.toLowerCase();
-  const k = roleKey(pos, true);
-  if (k === "GK") return /ball-playing|sweeper/.test(n) ? "sk" : "gk";
-  if (k === "CB" || k === "CBW") return /ball-playing|advanced/.test(n) ? "bpd" : "cd";
-  if (k === "FB") return /wing-back|inside/.test(n) ? "wb" : "fb";
-  if (k === "WB") return "wb";
-  if (k === "DM") return /deep-lying/.test(n) ? "dlp" : /box-to-box/.test(n) ? "b2b" : /pressing/.test(n) ? "bwm" : "anchor";
-  if (k === "CM") return /playmaker/.test(n) && /advanced/.test(n) ? "ap" : /midfield playmaker/.test(n) ? "dlp" : /attacking/.test(n) ? "am" : /pressing|screening|covering/.test(n) ? "bwm" : "b2b";
-  if (k === "WM") return /inside/.test(n) ? "if" : /playmaking/.test(n) ? "ap" : "w";
-  if (k === "AM") return /advanced playmaker/.test(n) ? "ap" : /second striker/.test(n) ? "cf" : "am";
-  if (k === "W") return /inside|forward/.test(n) ? "if" : /playmaking/.test(n) ? "ap" : "w";
-  return /target/.test(n) ? "tm" : /poacher/.test(n) ? "poacher" : /tracking/.test(n) ? "pf" : "cf";
+export type Phase = "ip" | "oop";
+const WEIGHTS = [4, 3, 2, 1]; // prioridade: o 1º atributo da função pesa mais
+
+export const ATTR_NAME: Record<string, string> = Object.fromEntries(ATTR_GROUPS.flatMap((g) => g.keys));
+
+/** Atributos-chave da função, em ordem de prioridade. */
+export function priorityAttrs(pos: Pos, wide: boolean, phase: Phase, role?: string): string[] {
+  if (!role) return [];
+  const a = ROLE_ATTRS[roleKey(pos, wide)][phase][role] ?? ROLE_ATTRS.CBW[phase][role];
+  return a ?? [];
 }
 
-/** Encaixe (0–100) do jogador nas funções escolhidas: média entre a função com e sem a bola. */
-export function roleFit(p: Player, pos: Pos, ip?: string, oop?: string): number | null {
-  const scores = [ip, oop].filter(Boolean).map((r) => {
-    const base = ROLES.find((x) => x.id === baseFor(pos, r!));
-    return base ? roleScore(base, p.attrs) : null;
-  }).filter((x): x is number => x != null);
-  return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+/** Nota 0–100 do jogador numa função (média ponderada pela prioridade dos 4 atributos-chave). */
+export function roleScoreOf(p: Player, pos: Pos, wide: boolean, phase: Phase, role?: string): number | null {
+  const attrs = priorityAttrs(pos, wide, phase, role);
+  let sum = 0, tot = 0, known = 0;
+  attrs.forEach((k, i) => {
+    const v = p.attrs[k];
+    if (typeof v === "number") { sum += v * WEIGHTS[i]; tot += 20 * WEIGHTS[i]; known++; }
+  });
+  return known >= 2 ? Math.round((sum / tot) * 100) : null;
+}
+
+/** Encaixe nas funções escolhidas: média entre a função com e sem a bola. */
+export function roleFit(p: Player, pos: Pos, ip?: string, oop?: string, wide = false): number | null {
+  const sc = [roleScoreOf(p, pos, wide, "ip", ip), roleScoreOf(p, pos, wide, "oop", oop)].filter((x): x is number => x != null);
+  return sc.length ? Math.round(sc.reduce((a, b) => a + b, 0) / sc.length) : null;
+}
+
+/** Melhor função (com a bola) do jogador numa posição, entre as funções disponíveis. */
+export function bestFor(p: Player, pos: Pos, wide = false, phase: Phase = "ip"): { role: string; score: number } | null {
+  let best: { role: string; score: number } | null = null;
+  for (const r of rolesFor(pos, wide)[phase]) {
+    const sc = roleScoreOf(p, pos, wide, phase, r);
+    if (sc != null && (!best || sc > best.score)) best = { role: r, score: sc };
+  }
+  return best;
+}
+
+/** Melhor função do jogador considerando as posições em que ele joga. */
+export function bestNew(p: Player): { role: string; score: number; pos: Pos } | null {
+  let best: { role: string; score: number; pos: Pos } | null = null;
+  for (const pos of p.positions) {
+    const b = bestFor(p, pos);
+    if (b && (!best || b.score > best.score)) best = { ...b, pos };
+  }
+  return best;
 }
 
 export const POS_LABEL: Record<Pos, string> = {

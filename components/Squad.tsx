@@ -1,14 +1,13 @@
 "use client";
-import { Select } from "./Dropdown";
+import { Dropdown, Select } from "./Dropdown";
 import { useMemo, useRef, useState } from "react";
 import { effectiveSlots } from "@/lib/board";
 import { cellXY, COLS, ROWS, snapCell, posFromCell } from "@/lib/grid";
-import { rolesFor, POS_LABEL } from "@/lib/fmroles";
+import { rolesFor, POS_LABEL, roleFit, bestFor, bestNew, priorityAttrs, ATTR_NAME } from "@/lib/fmroles";
 import { detectFormation } from "@/lib/board";
 import { FORMATIONS, NEIGHBORS } from "@/lib/formations";
-import { bestOverall, bestRoleFor } from "@/lib/roles";
-import { Player, Pos, uid } from "@/lib/types";
-import { contractYear } from "@/lib/import";
+import { ATTR_GROUPS, Player, Pos, uid } from "@/lib/types";
+import { contractYear, moneyNum } from "@/lib/import";
 import { evaluateFormation } from "@/lib/analysis";
 import type { Props } from "@/lib/client";
 import PlayerEditor from "./PlayerEditor";
@@ -110,29 +109,60 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
       lineup: Object.fromEntries(Object.entries(s.lineup).filter(([, v]) => v !== id)),
     }));
 
-  const fitFor = (p: Player, pos: Pos): { score: number | null; natural: boolean; cover: boolean } => {
+  const fitFor = (p: Player, pos: Pos, wide = false, ip?: string, oop?: string): { score: number | null; natural: boolean; cover: boolean } => {
     const natural = p.positions.includes(pos);
     const cover = !natural && p.positions.some((x) => NEIGHBORS[pos].includes(x));
-    const b = bestRoleFor(p, pos);
-    return { score: b ? b.score : null, natural, cover };
+    // com função escolhida: nota nas prioridades dela; senão, a melhor função disponível na posição
+    const score = ip || oop ? roleFit(p, pos, ip, oop, wide) : bestFor(p, pos, wide)?.score ?? null;
+    return { score, natural, cover };
   };
 
   const candidates = useMemo(() => {
     if (picking === null) return [];
-    const pos = slots[picking].pos;
+    const sl = slots[picking];
     return squad
-      .map((p) => ({ p, ...fitFor(p, pos) }))
+      .map((p) => ({
+        p, ...fitFor(p, sl.pos, sl.wide, sl.ip, sl.oop),
+        ipS: sl.ip ? roleFit(p, sl.pos, sl.ip, undefined, sl.wide) : null,
+        oopS: sl.oop ? roleFit(p, sl.pos, undefined, sl.oop, sl.wide) : null,
+      }))
       .sort((a, b) => Number(b.natural) - Number(a.natural) || Number(b.cover) - Number(a.cover) || (b.score ?? 0) - (a.score ?? 0));
-  }, [picking, state.players, state.formation]); // eslint-disable-line
+  }, [picking, state.players, state.formation, state.board]); // eslint-disable-line
 
+  // ---- ordenação do elenco ----
+  type SortKey = string; // name | pos | age | best | contract | value | wage | ca | pa | nat | attr:<chave>
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "pos", dir: 1 });
+  const setKey = (key: SortKey, dir?: 1 | -1) => setSort((o) => ({ key, dir: dir ?? (o.key === key ? (-o.dir as 1 | -1) : key === "name" || key === "pos" || key === "nat" ? 1 : -1) }));
+  const sortVal = (p: Player, key: SortKey): number | string => {
+    if (key === "name") return p.name.toLowerCase();
+    if (key === "nat") return (p.nationality ?? "").toLowerCase();
+    if (key === "pos") return p.positions.length ? Math.min(...p.positions.map((x) => POS_ORDER.indexOf(x))) : 99;
+    if (key === "age") return p.age ?? 99;
+    if (key === "best") return bestNew(p)?.score ?? -1;
+    if (key === "contract") return contractYear(p) ?? 9999;
+    if (key === "value") return moneyNum(p.value);
+    if (key === "wage") return moneyNum(p.wage);
+    if (key === "ca") return p.ca ?? -1;
+    if (key === "pa") return p.pa ?? -1;
+    if (key.startsWith("attr:")) return p.attrs[key.slice(5)] ?? -1;
+    return 0;
+  };
   const byPos = useMemo(() => {
-    const sorted = [...squad].sort((a, b) => {
-      const ia = Math.min(...(a.positions.length ? a.positions.map((x) => POS_ORDER.indexOf(x)) : [99]));
-      const ib = Math.min(...(b.positions.length ? b.positions.map((x) => POS_ORDER.indexOf(x)) : [99]));
-      return ia - ib || a.name.localeCompare(b.name);
+    return [...squad].sort((a, b) => {
+      const va = sortVal(a, sort.key), vb = sortVal(b, sort.key);
+      const c = typeof va === "string" ? va.localeCompare(vb as string) : (va as number) - (vb as number);
+      return c * sort.dir || a.name.localeCompare(b.name);
     });
-    return sorted;
-  }, [state.players]); // eslint-disable-line
+  }, [state.players, sort]); // eslint-disable-line
+  const COLS_ALL: { key: string; label: string }[] = [
+    { key: "name", label: "Name" }, { key: "pos", label: "Pos" }, { key: "age", label: "Age" }, { key: "best", label: "Best role" },
+    { key: "contract", label: "Contract" }, { key: "nat", label: "Nat" }, { key: "ca", label: "CA" }, { key: "pa", label: "PA" },
+    { key: "value", label: "Value" }, { key: "wage", label: "Wage" },
+  ];
+  const [cols, setCols] = useState<string[]>(["name", "pos", "age", "best", "contract"]);
+  const shown = [...COLS_ALL.filter((c) => c.key === "name" || cols.includes(c.key))];
+  const attrKey = sort.key.startsWith("attr:") ? sort.key.slice(5) : null;
+  const sortLabel = attrKey ? ATTR_NAME[attrKey] : COLS_ALL.find((c) => c.key === sort.key)?.label;
 
   const autoPick = () => {
     const ev = evaluateFormation(squad, state.formation, slots);
@@ -176,7 +206,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
               {slots.map((sl, i) => {
                 const pid = state.lineup[String(i)];
                 const pl = pid ? state.players.find((p) => p.id === pid) : undefined;
-                const fit = pl ? fitFor(pl, sl.pos) : null;
+                const fit = pl ? fitFor(pl, sl.pos, sl.wide, sl.ip, sl.oop) : null;
                 return (
                   <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%", touchAction: "none", cursor: "grab" }}
                     onPointerDown={(e) => onDown(e, i)} onPointerMove={onMove} onPointerUp={(e) => onUp(e, i)}
@@ -204,20 +234,54 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
             <p className="mute">Seu elenco está vazio. Tire prints da tela de Elenco do jogo e importe, ou cadastre à mão.
               <br /><button className="btn sm" style={{ marginTop: ".5rem" }} onClick={goImport}>Importar por print</button></p>
           )}
+          <div className="row" style={{ gap: ".4rem", marginBottom: ".5rem", flexWrap: "wrap" }}>
+            <Dropdown width={190} label={<>Sort: <b>{sortLabel}</b> {sort.dir === 1 ? "▲" : "▼"}</>}>
+              {(close) => (
+                <>
+                  {COLS_ALL.map((c) => <button key={c.key} type="button" className={"sel-opt" + (sort.key === c.key ? " on" : "")} onClick={() => { setKey(c.key); close(); }}>{c.label}</button>)}
+                  {ATTR_GROUPS.map((g) => (
+                    <div key={g.title}>
+                      <div className="mute" style={{ fontSize: ".7rem", padding: ".4rem .7rem .1rem", textTransform: "uppercase", letterSpacing: ".05em" }}>{g.title}</div>
+                      {g.keys.map(([k, label]) => <button key={k} type="button" className={"sel-opt" + (sort.key === "attr:" + k ? " on" : "")} onClick={() => { setKey("attr:" + k, -1); close(); }}>{label}</button>)}
+                    </div>
+                  ))}
+                </>
+              )}
+            </Dropdown>
+            <Dropdown width={130} label="Columns">
+              {() => COLS_ALL.filter((c) => c.key !== "name").map((c) => (
+                <label key={c.key} className="sel-opt" style={{ display: "flex", gap: ".5rem", alignItems: "center", cursor: "pointer" }}>
+                  <input type="checkbox" style={{ width: "auto" }} checked={cols.includes(c.key)} onChange={(e) => setCols((x) => (e.target.checked ? [...x, c.key] : x.filter((y) => y !== c.key)))} />{c.label}
+                </label>
+              ))}
+            </Dropdown>
+          </div>
           <div className="scroll">
             <table>
-              <thead><tr><th>Nome</th><th>Pos</th><th>Id.</th><th>Best role</th><th>Contrato</th></tr></thead>
+              <thead><tr>
+                {shown.map((c) => (
+                  <th key={c.key} style={{ cursor: "pointer", userSelect: "none" }} onClick={() => setKey(c.key)}>
+                    {c.label}{sort.key === c.key ? (sort.dir === 1 ? " ▲" : " ▼") : ""}
+                  </th>
+                ))}
+                {attrKey && <th style={{ cursor: "pointer" }} onClick={() => setKey(sort.key)}>{ATTR_NAME[attrKey]} {sort.dir === 1 ? "▲" : "▼"}</th>}
+              </tr></thead>
               <tbody>
                 {byPos.map((p) => {
-                  const b = bestOverall(p);
+                  const b = bestNew(p);
                   const y = contractYear(p);
+                  const cell: Record<string, React.ReactNode> = {
+                    name: p.name,
+                    pos: p.positions.join(", ") || <span className="mute">—</span>,
+                    age: p.age ?? "—",
+                    best: b ? <><span className={"score " + scoreClass(b.score)}>{b.score}</span> <span className="mute">{b.role}</span></> : <span className="mute">no attributes</span>,
+                    contract: <span className={y && y <= 2027 ? "err" : ""}>{p.contractExpiry ?? "—"}</span>,
+                    nat: p.nationality ?? "—", ca: p.ca ?? "—", pa: p.pa ?? "—", value: p.value ?? "—", wage: p.wage ?? "—",
+                  };
                   return (
                     <tr key={p.id} className="click" onClick={() => setEditing(p)}>
-                      <td>{p.name}</td>
-                      <td>{p.positions.join(", ") || <span className="mute">—</span>}</td>
-                      <td>{p.age ?? "—"}</td>
-                      <td>{b ? <><span className={"score " + scoreClass(b.score)}>{b.score}</span> <span className="mute">{b.role.name}</span></> : <span className="mute">sem atributos</span>}</td>
-                      <td className={y && y <= 2027 ? "err" : ""}>{p.contractExpiry ?? "—"}</td>
+                      {shown.map((c) => <td key={c.key}>{cell[c.key]}</td>)}
+                      {attrKey && <td>{p.attrs[attrKey] ?? "—"}</td>}
                     </tr>
                   );
                 })}
@@ -249,14 +313,21 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
                   options={[{ value: "", label: "No role" }, ...rolesFor(slots[picking].pos, slots[picking].wide).oop.map((r) => ({ value: r, label: r }))]} />
               </div>
             </div>
+            {(slots[picking].ip || slots[picking].oop) && (
+              <div className="mute" style={{ fontSize: ".78rem", margin: "0 0 .5rem", lineHeight: 1.5 }}>
+                {slots[picking].ip && <div><b>In possession</b> · {priorityAttrs(slots[picking].pos, slots[picking].wide, "ip", slots[picking].ip).map((k) => ATTR_NAME[k]).join(" › ")}</div>}
+                {slots[picking].oop && <div><b>Out of possession</b> · {priorityAttrs(slots[picking].pos, slots[picking].wide, "oop", slots[picking].oop).map((k) => ATTR_NAME[k]).join(" › ")}</div>}
+              </div>
+            )}
             <table>
+              {(slots[picking].ip || slots[picking].oop) && <thead><tr><th>Player</th><th>Pos</th><th>Fit</th><th>With</th><th>Without</th></tr></thead>}
               <tbody>
                 {state.lineup[String(picking)] && (
                   <tr className="click" onClick={() => { setState((s) => { const l = { ...s.lineup }; delete l[String(picking)]; return { ...s, lineup: l }; }); setPicking(null); }}>
-                    <td colSpan={3} className="err">Remover jogador deste slot</td>
+                    <td colSpan={5} className="err">Remover jogador deste slot</td>
                   </tr>
                 )}
-                {candidates.map(({ p, score, natural, cover }) => {
+                {candidates.map(({ p, score, natural, cover, ipS, oopS }) => {
                   const usedElsewhere = Object.entries(state.lineup).find(([k, v]) => v === p.id && k !== String(picking));
                   return (
                     <tr key={p.id} className="click" onClick={() => {
@@ -271,6 +342,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
                       <td>{p.name} {usedElsewhere && <span className="tag">já titular</span>}</td>
                       <td className="mute">{p.positions.join(", ")}</td>
                       <td><span className={"score " + scoreClass(score)}>{score ?? "?"}</span> {natural ? "" : cover ? "~" : "!"}</td>
+                      {(slots[picking].ip || slots[picking].oop) && <><td>{ipS ?? "—"}</td><td>{oopS ?? "—"}</td></>}
                     </tr>
                   );
                 })}
