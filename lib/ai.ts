@@ -9,7 +9,7 @@ export function provider(): Provider {
 }
 
 export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 export function guard(req: Request): Response | null {
   const code = process.env.ACCESS_CODE;
