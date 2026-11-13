@@ -114,7 +114,7 @@ export default function Transfers({ state, setState, accessCode, prefill, clearP
   };
 
   return (
-    <>
+    <div className="fillcol fill" style={{ gap: 12 }}>
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div>
@@ -129,7 +129,8 @@ export default function Transfers({ state, setState, accessCode, prefill, clearP
         {!state.club.transferBudget && <p className="mute" style={{ fontSize: ".85rem" }}>Dica: preencha orçamento e estilo em “Extras & Clube” para sugestões mais realistas.</p>}
       </div>
 
-      <div className="card">
+      <div className="card fillcol" style={{ flex: 1 }}>
+        <div className="scroll">
         {state.chat.length === 0 && (
           <div>
             <p className="mute">Comece por uma pergunta rápida:</p>
@@ -146,6 +147,7 @@ export default function Transfers({ state, setState, accessCode, prefill, clearP
         {busy && <p className="mute">Analisando…</p>}
         {err && <p className="err">{err}</p>}
         <div ref={endRef} />
+        </div>
 
         {state.chat.length > 0 && !busy && (
           <div className="row" style={{ marginBottom: ".6rem" }}>{QUICK.map((q) => <button key={q} className="btn ghost sm" disabled={squad.length < 5} onClick={() => send(q)}>{q}</button>)}</div>
@@ -176,6 +178,6 @@ export default function Transfers({ state, setState, accessCode, prefill, clearP
           <span className="mute" style={{ fontSize: ".8rem" }}>Enter envia · Shift+Enter quebra linha · Ctrl+V cola um print</span>
         </div>
       </div>
-    </>
+    </div>
   );
 }

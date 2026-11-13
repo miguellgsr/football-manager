@@ -4,8 +4,10 @@ import { FORMATIONS, NEIGHBORS } from "@/lib/formations";
 import { bestOverall, bestRoleFor } from "@/lib/roles";
 import { Player, Pos, uid } from "@/lib/types";
 import { contractYear } from "@/lib/import";
+import { evaluateFormation } from "@/lib/analysis";
 import type { Props } from "@/lib/client";
 import PlayerEditor from "./PlayerEditor";
+import { PitchLines, roleClass, Shirt, Stars } from "./Pitch";
 
 export const scoreClass = (s: number | null | undefined) =>
   s == null ? "s-na" : s >= 70 ? "s-hi" : s >= 58 ? "s-mid" : "s-lo";
@@ -54,64 +56,67 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
     return sorted;
   }, [state.players]); // eslint-disable-line
 
+  const autoPick = () => {
+    const ev = evaluateFormation(squad, state.formation);
+    const lineup: Record<string, string> = {};
+    ev.assigns.forEach((a) => { if (a.playerId) lineup[String(a.slot)] = a.playerId; });
+    setState((s) => ({ ...s, lineup }));
+  };
+
   const startersCount = Object.keys(state.lineup).length;
 
   return (
     <>
-      {squad.length === 0 && (
-        <div className="card">
-          <h2>Comece importando seu elenco</h2>
-          <p className="mute">Como seu save é online e não dá para exportar, tire prints da tela de Elenco (visão de atributos) e deixe a IA ler. Ou cadastre jogadores à mão.</p>
-          <div className="row">
-            <button className="btn" onClick={goImport}>Importar por print</button>
-            <button className="btn ghost" onClick={() => setEditing({ id: uid(), name: "", positions: [], attrs: {}, status: "squad" })}>Cadastrar jogador</button>
-          </div>
-        </div>
-      )}
-
-      <div className="grid2">
-        <div className="card">
-          <div className="row" style={{ justifyContent: "space-between", marginBottom: ".6rem" }}>
-            <h2 style={{ margin: 0 }}>Time titular</h2>
+      <div className="cols c21 fill">
+        <div className="card fillcol">
+          <div className="row" style={{ justifyContent: "space-between", marginBottom: ".5rem" }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Time titular</h2>
+              <span className="mute" style={{ fontSize: ".78rem" }}>Titulares definidos: {startersCount}/11 · clique num jogador para trocar</span>
+            </div>
             <div className="row">
               <select style={{ width: "auto" }} value={state.formation} onChange={(e) => setState((s) => ({ ...s, formation: e.target.value, lineup: {} }))}>
                 {Object.keys(FORMATIONS).map((f) => <option key={f}>{f}</option>)}
               </select>
+              <button className="btn sm" disabled={squad.length === 0} onClick={autoPick}>Melhor 11</button>
               <button className="btn ghost sm" onClick={() => setState((s) => ({ ...s, lineup: {} }))}>Limpar</button>
             </div>
           </div>
-          <div className="pitch">
-            {slots.map((sl, i) => {
-              const pid = state.lineup[String(i)];
-              const pl = pid ? state.players.find((p) => p.id === pid) : undefined;
-              const fit = pl ? fitFor(pl, sl.pos) : null;
-              return (
-                <div key={i} className="slot" style={{ left: sl.x + "%", top: sl.y + "%" }} onClick={() => setPicking(i)}>
-                  <div className="p">{sl.pos}</div>
-                  <div className="n">{pl ? pl.name : "—"}</div>
-                  {pl && fit && (
-                    <div className="s">
-                      <span className={"score " + scoreClass(fit.score)}>{fit.score ?? "?"}</span>
-                      {!fit.natural && <span title={fit.cover ? "Posição próxima" : "Fora de posição"}> {fit.cover ? "~" : "!"}</span>}
+          <div className="pitchwrap">
+            <div className="pitch">
+              <PitchLines />
+              {slots.map((sl, i) => {
+                const pid = state.lineup[String(i)];
+                const pl = pid ? state.players.find((p) => p.id === pid) : undefined;
+                const fit = pl ? fitFor(pl, sl.pos) : null;
+                return (
+                  <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%" }} onClick={() => setPicking(i)}
+                    title={fit ? `Encaixe ${fit.score ?? "?"}${fit.natural ? "" : fit.cover ? " · posição próxima" : " · fora de posição"}` : "Escolher jogador"}>
+                    <Shirt n={i + 1} />
+                    <div className="card-fm">
+                      <div className={"role " + roleClass(sl.pos)}>{sl.pos}</div>
+                      <Stars score={fit?.score} />
+                      <div className={"pn" + (pl ? (fit && !fit.natural && !fit.cover ? " warn" : "") : " empty")}>{pl ? pl.name.split(" ").slice(-1)[0] : "—"}</div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <p className="mute" style={{ fontSize: ".8rem" }}>
-            Clique num slot para escolher. O número é o encaixe (0–100) do jogador na melhor função daquela posição, calculado pelos atributos. “~” = posição próxima, “!” = fora de posição. Titulares definidos: {startersCount}/11.
-          </p>
         </div>
 
-        <div className="card">
-          <div className="row" style={{ justifyContent: "space-between", marginBottom: ".6rem" }}>
+        <div className="card fillcol">
+          <div className="row" style={{ justifyContent: "space-between", marginBottom: ".5rem" }}>
             <h2 style={{ margin: 0 }}>Elenco ({squad.length})</h2>
             <button className="btn sm" onClick={() => setEditing({ id: uid(), name: "", positions: [], attrs: {}, status: "squad" })}>+ Jogador</button>
           </div>
-          <div style={{ maxHeight: 640, overflowY: "auto" }}>
+          {squad.length === 0 && (
+            <p className="mute">Seu elenco está vazio. Tire prints da tela de Elenco do jogo e importe, ou cadastre à mão.
+              <br /><button className="btn sm" style={{ marginTop: ".5rem" }} onClick={goImport}>Importar por print</button></p>
+          )}
+          <div className="scroll">
             <table>
-              <thead><tr><th>Nome</th><th>Pos</th><th>Idade</th><th>Melhor função</th><th>Contrato</th></tr></thead>
+              <thead><tr><th>Nome</th><th>Pos</th><th>Id.</th><th>Melhor função</th><th>Contrato</th></tr></thead>
               <tbody>
                 {byPos.map((p) => {
                   const b = bestOverall(p);

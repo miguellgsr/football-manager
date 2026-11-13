@@ -46,65 +46,70 @@ export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
   const fmt = (t: number) => new Date(t).toLocaleDateString("pt-BR");
 
   return (
-    <main style={{ maxWidth: 900 }}>
-      <h1 style={{ fontSize: "1.8rem", marginTop: "2rem" }}>FM <span style={{ color: "var(--accent)" }}>Mate</span></h1>
-      <p className="mute">Escolha o save que você quer trabalhar. Cada save tem elenco, shortlist, táticas e conversas próprios, sem interferir nos outros.</p>
-
-      <div className="card">
+    <div className="cols c2 fill">
+      <div className="card fillcol">
         <h2>Seus saves</h2>
-        {saves.length === 0 && <p className="mute">Nenhum save ainda. Crie o primeiro abaixo.</p>}
-        {saves.map((s) => {
-          const count = loadState(s.id).players.filter((p) => p.status === "squad").length;
-          return (
-            <div key={s.id} className="row" style={{ justifyContent: "space-between", padding: ".7rem 0", borderTop: "1px solid var(--line)" }}>
-              <div style={{ minWidth: 220 }}>
+        <p className="mute" style={{ margin: "0 0 .6rem", fontSize: ".82rem" }}>Cada save tem elenco, shortlist, táticas e conversas próprios.</p>
+        <div className="scroll">
+          {saves.length === 0 && <p className="mute">Nenhum save ainda. Crie o primeiro ao lado.</p>}
+          {saves.map((s) => {
+            const count = loadState(s.id).players.filter((p) => p.status === "squad").length;
+            return (
+              <div key={s.id} className="glass" style={{ padding: ".7rem .9rem", marginBottom: ".6rem", borderRadius: 16, borderLeft: `4px solid ${s.colors?.p ?? "var(--accent)"}` }}>
                 {editing === s.id ? (
                   <div className="row">
-                    <input style={{ width: 220 }} value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
+                    <input style={{ width: 200 }} value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
                     <button className="btn sm" onClick={() => { renameSave(s.id, editName); setEditing(null); reload(); }}>Salvar</button>
                     <button className="btn ghost sm" onClick={() => setEditing(null)}>Cancelar</button>
                   </div>
                 ) : (
-                  <>
-                    <b>{s.name}</b>
-                    <div className="mute" style={{ fontSize: ".85rem" }}>{s.colors && <><span className="swatch" style={{ background: s.colors.p }} /> <span className="swatch" style={{ background: s.colors.s }} /> </>}{s.club ? `${s.club} · ` : ""}{count} jogadores · atualizado em {fmt(s.updatedAt)}</div>
-                  </>
+                  <div className="row" style={{ justifyContent: "space-between" }}>
+                    <div>
+                      <b>{s.name}</b>
+                      <div className="mute" style={{ fontSize: ".8rem" }}>
+                        {s.colors && <><span className="swatch" style={{ background: s.colors.p }} /> <span className="swatch" style={{ background: s.colors.s }} /> </>}
+                        {s.club ? `${s.club} · ` : ""}{count} jogadores · {fmt(s.updatedAt)}
+                      </div>
+                    </div>
+                    <button className="btn" onClick={() => onOpen(s.id)}>Abrir</button>
+                  </div>
+                )}
+                {editing !== s.id && (
+                  <div className="row" style={{ marginTop: ".4rem" }}>
+                    <button className="btn ghost sm" onClick={() => { setEditing(s.id); setEditName(s.name); }}>Renomear</button>
+                    <button className="btn ghost sm" onClick={() => exportSave(s.id, s.name)}>Backup</button>
+                    {confirmDel === s.id ? (
+                      <>
+                        <button className="btn danger sm" onClick={() => { deleteSave(s.id); setConfirmDel(null); reload(); }}>Confirmar exclusão</button>
+                        <button className="btn ghost sm" onClick={() => setConfirmDel(null)}>Cancelar</button>
+                      </>
+                    ) : (
+                      <button className="btn danger sm" onClick={() => setConfirmDel(s.id)}>Excluir</button>
+                    )}
+                  </div>
                 )}
               </div>
-              <div className="row">
-                <button className="btn" onClick={() => onOpen(s.id)}>Abrir</button>
-                <button className="btn ghost sm" onClick={() => { setEditing(s.id); setEditName(s.name); }}>Renomear</button>
-                <button className="btn ghost sm" onClick={() => exportSave(s.id, s.name)}>Backup</button>
-                {confirmDel === s.id ? (
-                  <>
-                    <button className="btn danger sm" onClick={() => { deleteSave(s.id); setConfirmDel(null); reload(); }}>Confirmar exclusão</button>
-                    <button className="btn ghost sm" onClick={() => setConfirmDel(null)}>Cancelar</button>
-                  </>
-                ) : (
-                  <button className="btn danger sm" onClick={() => setConfirmDel(s.id)}>Excluir</button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      <div className="card">
+      <div className="card fillcol">
         <h2>Novo save</h2>
-        <div className="field"><label>Nome do save</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Carreira Flamengo 2027" onKeyDown={(e) => e.key === "Enter" && create()} /></div>
-        <h3 style={{ marginTop: ".4rem" }}>Clube do save (define as cores da página)</h3>
-        <ClubPicker value={choice} onChange={(c) => { setChoice(c); if (!name.trim() && c.club && c.league) setName(`Carreira ${c.club}`); }} />
-        <div className="row">
+        <div className="scroll">
+          <div className="field"><label>Nome do save</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Carreira Flamengo 2027" onKeyDown={(e) => e.key === "Enter" && create()} /></div>
+          <h3>Clube do save (define as cores da interface)</h3>
+          <ClubPicker value={choice} onChange={(c) => { setChoice(c); if (!name.trim() && c.club && c.league) setName(`Carreira ${c.club}`); }} />
+        </div>
+        <div className="row" style={{ marginTop: ".6rem" }}>
           <button className="btn" disabled={!name.trim()} onClick={create}>Criar e abrir</button>
-          <label className="btn ghost" style={{ margin: 0, cursor: "pointer", color: "var(--text)", fontSize: "1rem" }}>
+          <label className="btn ghost" style={{ margin: 0, cursor: "pointer", color: "var(--text)", fontSize: ".9rem" }}>
             Importar backup (.json)
             <input type="file" accept="application/json" style={{ display: "none" }} onChange={(e) => importSave(e.target.files?.[0])} />
           </label>
         </div>
         {err && <p className="err">{err}</p>}
       </div>
-
-      <p className="mute" style={{ fontSize: ".85rem" }}>Os saves ficam guardados neste navegador. Para usar em outro aparelho, exporte o backup e importe lá.</p>
-    </main>
+    </div>
   );
 }

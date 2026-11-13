@@ -4,6 +4,7 @@ import { callApi, Props } from "@/lib/client";
 import { fileToJpegBase64, importFile, mergePlayers, parsePositions } from "@/lib/import";
 import { Player, uid } from "@/lib/types";
 import PlayerEditor from "@/components/PlayerEditor";
+import SubMenu from "@/components/SubMenu";
 
 type Mode = "each" | "same" | "list";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -24,6 +25,9 @@ function toPlayer(p: any, status: Player["status"]): Player {
 export default function ImportTab({ state, setState, accessCode }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [mode, setMode] = useState<Mode>("each");
+  const [sec, setSec] = useState<Mode | "file" | "manual">("each");
+  const pick = (id: string) => { setSec(id as any); if (id === "each" || id === "same" || id === "list") setMode(id); };
+  const printSec = sec === "each" || sec === "same" || sec === "list";
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [msg, setMsg] = useState<{ t: "ok" | "err"; text: string } | null>(null);
@@ -132,17 +136,20 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
 
   return (
     <>
+      <div className="cols side fill">
       <div className="card">
-        <h2>1. Importar por print</h2>
+        <SubMenu title="Importar" active={sec} onSelect={pick} items={[
+          { id: "each", label: "Um print por jogador" },
+          { id: "same", label: "Prints do mesmo jogador" },
+          { id: "list", label: "Listas de jogadores" },
+          { id: "file", label: "Arquivo CSV / HTML" },
+          { id: "manual", label: "Cadastro manual" },
+        ]} />
+      </div>
+      <div className="card fillcol"><div className="scroll">
+      {printSec && <div>
+        <h2>{sec === "each" ? "Um print por jogador" : sec === "same" ? "Vários prints do mesmo jogador" : "Prints de listas"}</h2>
         <div className="grid2">
-          <div className="field">
-            <label>Como são os prints?</label>
-            <select value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
-              <option value="each">Um print por jogador (recomendado)</option>
-              <option value="same">Vários prints do mesmo jogador</option>
-              <option value="list">Prints de listas com vários jogadores</option>
-            </select>
-          </div>
           <div className="field">
             <label>Adicionar como</label>
             <select value={target} onChange={(e) => setTarget(e.target.value as Player["status"])}>
@@ -177,18 +184,18 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
           <li>Contratos, salário e valor aparecem na visão geral do jogador ou em uma visão de Contratos.</li>
           <li>Jogadores com o mesmo nome são combinados com os já cadastrados (dá para completar dados em prints diferentes).</li>
         </ul>
-      </div>
+      </div>}
 
-      <div className="card">
-        <h2>2. Arquivo CSV / HTML</h2>
+      {sec === "file" && <div>
+        <h2>Arquivo CSV / HTML</h2>
         <p className="mute">Se conseguir exportar (save offline com plugin de exportação), envie aqui. Reconhece colunas em inglês, abreviações do FM (Fin, Pas, Tck…) e posições como “D (RLC)”.</p>
         <input type="file" accept=".csv,.html,.htm,.txt" onChange={(e) => onFile(e.target.files?.[0])} />
-      </div>
+      </div>}
 
-      <div className="card">
-        <h2>3. Cadastro manual</h2>
+      {sec === "manual" && <div>
+        <h2>Cadastro manual</h2>
         <button className="btn ghost" onClick={() => setEditing({ id: uid(), name: "", positions: [], attrs: {}, status: target })}>Cadastrar jogador</button>
-      </div>
+      </div>}
 
       {msg && <p className={msg.t === "ok" ? "ok" : "err"}>{msg.text}</p>}
       {warnings.length > 0 && <div className="card"><h3>Avisos da leitura</h3><ul className="clean">{warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></div>}
@@ -218,6 +225,8 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
           </div>
         </div>
       )}
+
+      </div></div></div>
 
       {editing && (
         <PlayerEditor

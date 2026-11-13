@@ -59,7 +59,7 @@ export default function ClubPicker({ value, onChange }: { value: ClubChoice; onC
       </div>
       <div className="field"><label>Ou busque o clube pelo nome</label><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ex.: Flamengo, Chelsea, Boca..." /></div>
 
-      <div style={{ marginBottom: ".6rem" }}>
+      <div className="scroll" style={{ marginBottom: ".6rem", maxHeight: 170 }}>
         {results.map((k) => <Chip key={k.country + k.league + k.name} k={k} c={k.country} l={k.league} />)}
         {!q && lObj?.clubs.map((k) => <Chip key={k.name} k={k} c={country} l={league} />)}
         {q && results.length === 0 && <span className="mute">Nenhum clube encontrado. Use o campo manual abaixo.</span>}

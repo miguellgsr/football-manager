@@ -45,7 +45,8 @@ export default function Tactics({ state, accessCode }: Props) {
   );
 
   return (
-    <>
+    <div className="cols c2 fill">
+      <div className="fillcol" style={{ gap: 12 }}>
       <div className="card">
         <h2>Táticas com IA</h2>
         <p className="mute">A IA lê o seu elenco completo ({squad.length} jogadores, {withAttrs} com atributos), compara formações e estilos de jogo e recomenda o que melhor encaixa, com a função de cada titular.</p>
@@ -60,10 +61,10 @@ export default function Tactics({ state, accessCode }: Props) {
       </div>
 
       {squad.length >= 11 && (
-        <div className="card">
-          <h2>Encaixe do elenco por formação (cálculo local)</h2>
+        <div className="card fillcol" style={{ flex: 1 }}>
+          <h2>Encaixe por formação (cálculo local)</h2>
           <p className="mute" style={{ fontSize: ".85rem" }}>Melhor 11 possível em cada formação, pelo encaixe dos atributos na função de cada posição (0–100). Jogador fora de posição perde 10 pontos.</p>
-          <table>
+          <div className="scroll"><table>
             <thead><tr><th>Formação</th><th>Encaixe médio</th><th>Posições sem jogador</th><th>Fora de posição</th></tr></thead>
             <tbody>
               {evals.map((e) => (
@@ -75,10 +76,13 @@ export default function Tactics({ state, accessCode }: Props) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
+      </div>
 
+      <div className="card fillcol"><div className="scroll">
+      {!res && <p className="mute">O resultado da análise da IA aparece aqui: formações avaliadas, tática recomendada, função de cada titular, pontos fracos e bola parada.</p>}
       {res && (
         <>
           {!!res.candidates?.length && (
@@ -126,6 +130,7 @@ export default function Tactics({ state, accessCode }: Props) {
           </div>
         </>
       )}
-    </>
+      </div></div>
+    </div>
   );
 }

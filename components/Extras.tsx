@@ -6,11 +6,13 @@ import { contractYear, moneyNum } from "@/lib/import";
 import { ATTR_GROUPS, initialState, Player, State } from "@/lib/types";
 import PlayerEditor from "./PlayerEditor";
 import ClubPicker from "./ClubPicker";
+import SubMenu from "./SubMenu";
 import { setIdentity } from "@/lib/saves";
 import { scoreClass } from "./Squad";
 
 export default function Extras({ state, setState, accessCode, setAccessCode, saveName, saveId, meta }: Props & { saveName: string; saveId: string; meta?: { country?: string; league?: string; colors?: { p: string; s: string } } }) {
   const [editing, setEditing] = useState<Player | null>(null);
+  const [sec, setSec] = useState("clube");
   const [a, setA] = useState("");
   const [b, setB] = useState("");
   const squad = state.players.filter((p) => p.status === "squad");
@@ -46,7 +48,19 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
 
   return (
     <>
+      <div className="cols side fill">
       <div className="card">
+        <SubMenu title="Extras & Clube" active={sec} onSelect={setSec} items={[
+          { id: "clube", label: "Clube e acesso" },
+          { id: "contratos", label: "Contratos e folha" },
+          { id: "jovens", label: "Jovens promessas" },
+          { id: "shortlist", label: "Shortlist" },
+          { id: "comparador", label: "Comparador" },
+          { id: "backup", label: "Backup do save" },
+        ]} />
+      </div>
+      <div className="card fillcol"><div className="scroll">
+      {sec === "clube" && <div>
         <h2>Clube — {saveName}</h2>
         <details style={{ marginBottom: ".8rem" }}>
           <summary className="mute" style={{ cursor: "pointer" }}>Trocar clube / cores do save</summary>
@@ -66,9 +80,9 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
           <input type="password" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} />
           <div className="mute" style={{ fontSize: ".75rem", marginTop: ".2rem" }}>Vale para todos os saves deste navegador.</div>
         </div>
-      </div>
+      </div>}
 
-      <div className="grid2">
+      {sec === "contratos" && <div className="grid2">
         <div className="card">
           <h2>Contratos mais próximos do fim</h2>
           {expiring.length === 0 ? <p className="mute">Sem dados de contrato.</p> : (
@@ -85,9 +99,9 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
           </div>
           <p className="mute" style={{ fontSize: ".8rem" }}>A folha soma os salários como estão no texto; use o mesmo período (semana/mês) em todos.</p>
         </div>
-      </div>
+      </div>}
 
-      <div className="card">
+      {sec === "jovens" && <div>
         <h2>Jovens promessas do elenco (≤ 21 anos)</h2>
         {young.length === 0 ? <p className="mute">Nenhum jogador até 21 anos.</p> : (
           <table>
@@ -100,9 +114,9 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
               </tr>); })}</tbody>
           </table>
         )}
-      </div>
+      </div>}
 
-      <div className="card">
+      {sec === "shortlist" && <div>
         <h2>Shortlist</h2>
         {short.length === 0 ? <p className="mute">Importe prints de alvos escolhendo “Shortlist” na aba Importar.</p> : (
           <table>
@@ -116,9 +130,9 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
               </tr>); })}</tbody>
           </table>
         )}
-      </div>
+      </div>}
 
-      <div className="card">
+      {sec === "comparador" && <div>
         <h2>Comparador</h2>
         <div className="row" style={{ marginBottom: ".6rem" }}>
           <select value={a} onChange={(e) => setA(e.target.value)} style={{ maxWidth: 260 }}><option value="">Jogador A</option>{state.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
@@ -140,9 +154,9 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
             </tbody>
           </table>
         )}
-      </div>
+      </div>}
 
-      <div className="card">
+      {sec === "backup" && <div>
         <h2>Backup deste save</h2>
         <p className="mute">Os dados ficam salvos neste navegador. Exporte um backup para levar este save a outro aparelho (na tela inicial há “Importar backup”).</p>
         <div className="row">
@@ -153,7 +167,8 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
           </label>
           <button className="btn danger" onClick={() => { if (confirm("Apagar todos os jogadores e a conversa deste save?")) setState(initialState); }}>Esvaziar este save</button>
         </div>
-      </div>
+      </div>}
+      </div></div></div>
 
       {editing && (
         <PlayerEditor
