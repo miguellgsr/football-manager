@@ -84,26 +84,37 @@ async function callGemini(system: string, opts: { text: string; images?: string[
     ...(opts.images ?? []).map((data) => ({ inlineData: { mimeType: "image/jpeg", data } })),
     { text: opts.text },
   ];
-  const body = JSON.stringify({
+  const mkBody = (model: string, think = true) => JSON.stringify({
     systemInstruction: { parts: [{ text: system }] },
     contents: [
       ...cleanHistory(opts.history).map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] })),
       { role: "user", parts },
     ],
-    generationConfig: { responseMimeType: "application/json", maxOutputTokens: opts.maxTokens ?? 4000 },
+    generationConfig: {
+      responseMimeType: "application/json", maxOutputTokens: opts.maxTokens ?? 4000,
+      ...(think && /^gemini-3\.[78]/.test(model) ? { thinkingConfig: { thinkingLevel: "low" } } : {}), // raciocínio curto: leitura de print não precisa de mais e evita timeout
+    },
   });
-  const call = (model: string) =>
+  const t0 = Date.now();
+  const call1 = (model: string, think: boolean) =>
     fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
-      body,
-    });
+      body: mkBody(model, think),
+      signal: AbortSignal.timeout(Math.max(5000, Math.min(24000, 52000 - (Date.now() - t0)))), // a função da Vercel morre aos 60s
+    }).catch((): Response => new Response(JSON.stringify({ error: { message: "Tempo esgotado" } }), { status: 503 }));
+
+  const call = async (model: string) => {
+    const r = await call1(model, true);
+    return r.status === 400 ? call1(model, false) : r; // modelo sem suporte ao nível de raciocínio: tenta sem
+  };
 
   // modelo principal e, se estiver sobrecarregado/indisponível, os reservas (GEMINI_FALLBACK_MODELS)
   const models = [GEMINI_MODEL, ...GEMINI_FALLBACKS.filter((m) => m !== GEMINI_MODEL)];
-  let res!: Response;
+  let res: Response = new Response("{}", { status: 503 });
   for (let mi = 0; mi < models.length; mi++) {
     for (let attempt = 0; attempt < 2; attempt++) {
+      if (Date.now() - t0 > 46000) break;
       res = await call(models[mi]);
       if (![500, 502, 503].includes(res.status)) break;
       await new Promise((r) => setTimeout(r, 1500));
