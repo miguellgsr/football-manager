@@ -88,8 +88,8 @@ export interface PosStatus {
 }
 
 /** Situação de cada posição para a formação de referência. */
-export function positionStatus(players: Player[], formation: string, allPos: Pos[]): PosStatus[] {
-  const slots = FORMATIONS[formation] ?? [];
+export function positionStatus(players: Player[], formation: string, allPos: Pos[], slotsOverride?: { pos: Pos }[]): PosStatus[] {
+  const slots = slotsOverride ?? FORMATIONS[formation] ?? [];
   return allPos.map((pos) => {
     const starters = slots.filter((s) => s.pos === pos).length;
     const need = starters ? starters + (REQUIRED_DEPTH_EXTRA[pos] ?? 1) : 0;

@@ -8,6 +8,7 @@ import { ATTR_GROUPS, initialState, Player, State } from "@/lib/types";
 import PlayerEditor from "./PlayerEditor";
 import ClubPicker from "./ClubPicker";
 import SubMenu from "./SubMenu";
+import Compare from "./Compare";
 import { setIdentity } from "@/lib/saves";
 import { scoreClass } from "./Squad";
 
@@ -56,7 +57,7 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
           { id: "contratos", label: "Contratos e folha" },
           { id: "jovens", label: "Jovens promessas" },
           { id: "shortlist", label: "Shortlist" },
-          { id: "comparador", label: "Comparador" },
+          { id: "comparador", label: "Compare" },
           { id: "backup", label: "Backup do save" },
         ]} />
       </div>
@@ -133,29 +134,7 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
         )}
       </div>}
 
-      {sec === "comparador" && <div>
-        <h2>Comparador</h2>
-        <div className="row" style={{ marginBottom: ".6rem" }}>
-          <Select width={240} value={a} onChange={setA} placeholder="Jogador A" options={state.players.map((p) => ({ value: p.id, label: p.name }))} />
-          <Select width={240} value={b} onChange={setB} placeholder="Jogador B" options={state.players.map((p) => ({ value: p.id, label: p.name }))} />
-        </div>
-        {pa && pb && (
-          <table>
-            <thead><tr><th>Atributo</th><th>{pa.name}</th><th>{pb.name}</th></tr></thead>
-            <tbody>
-              {ATTR_GROUPS.flatMap((g) => g.keys).filter(([k]) => pa.attrs[k] !== undefined || pb.attrs[k] !== undefined).map(([k, label]) => {
-                const x = pa.attrs[k], y = pb.attrs[k];
-                return (
-                  <tr key={k}><td>{label}</td>
-                    <td className={x !== undefined && y !== undefined && x > y ? "ok" : ""}>{x ?? "—"}</td>
-                    <td className={x !== undefined && y !== undefined && y > x ? "ok" : ""}>{y ?? "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>}
+      {sec === "comparador" && <Compare players={squad.concat(short)} />}
 
       {sec === "backup" && <div>
         <h2>Backup deste save</h2>
