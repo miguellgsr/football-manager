@@ -24,7 +24,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
   const squad = state.players.filter((p) => p.status === "squad");
   const slots = effectiveSlots(state);
   const pitchRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ i: number; sx: number; sy: number; moved: boolean } | null>(null);
+  const drag = useRef<{ i: number; sx: number; sy: number; moved: boolean; el: HTMLElement; raf: number } | null>(null);
 
   const patchSlot = (i: number, patch: { x?: number; y?: number; pos?: Pos }) =>
     setState((st) => {
@@ -49,8 +49,9 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
       return { ...st, board: { slots: b.slots, roles } };
     });
   const onDown = (e: React.PointerEvent, i: number) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag.current = { i, sx: e.clientX, sy: e.clientY, moved: false };
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    drag.current = { i, sx: e.clientX, sy: e.clientY, moved: false, el, raf: 0 };
   };
   const cellAt = (e: React.PointerEvent) => {
     const el = pitchRef.current;
@@ -64,11 +65,20 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
     const d = drag.current;
     if (!d) return;
     if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 5) return;
-    d.moved = true; setDragging(d.i);
-    setTarget(cellAt(e));
+    if (!d.moved) { d.moved = true; d.el.classList.add("drag"); setDragging(d.i); }
+    const cx = e.clientX, cy = e.clientY;
+    cancelAnimationFrame(d.raf);
+    d.raf = requestAnimationFrame(() => {
+      // o cartão segue o cursor direto no DOM (sem re-render); só a célula-alvo passa pelo React
+      d.el.style.setProperty("--dx", cx - d.sx + "px");
+      d.el.style.setProperty("--dy", cy - d.sy + "px");
+    });
+    const t = cellAt(e);
+    setTarget((o) => (o && t && o.c === t.c && o.r === t.r ? o : t));
   };
   const onUp = (e: React.PointerEvent, i: number) => {
     const d = drag.current; drag.current = null;
+    if (d) { cancelAnimationFrame(d.raf); d.el.classList.remove("drag"); d.el.style.removeProperty("--dx"); d.el.style.removeProperty("--dy"); }
     setTarget(null); setDragging(null);
     if (!d) return;
     if (!d.moved) { setPicking(i); return; }
@@ -148,9 +158,9 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
           <div className="pitchwrap">
             <div className="pitch" ref={pitchRef}>
               <PitchLines />
-              {Array.from({ length: ROWS * COLS }, (_, k) => {
+              {dragging !== null && Array.from({ length: ROWS * COLS }, (_, k) => {
                 const c = k % COLS, r = Math.floor(k / COLS);
-                if (slots.some((x) => x.c === c && x.r === r)) return null;
+                if (slots.some((x, j) => j !== dragging && x.c === c && x.r === r)) return null;
                 const { x, y } = cellXY(c, r);
                 const hot = target && target.c === c && target.r === r;
                 return <div key={"g" + k} className={"gcell" + (hot ? " hot" : "")} style={{ left: x + "%", top: y + "%" }}>+</div>;
@@ -163,7 +173,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
                 const pl = pid ? state.players.find((p) => p.id === pid) : undefined;
                 const fit = pl ? fitFor(pl, sl.pos) : null;
                 return (
-                  <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%", touchAction: "none", cursor: "grab", opacity: dragging === i ? .45 : 1 }}
+                  <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%", touchAction: "none", cursor: "grab" }}
                     onPointerDown={(e) => onDown(e, i)} onPointerMove={onMove} onPointerUp={(e) => onUp(e, i)}
                     title={fit ? `Encaixe ${fit.score ?? "?"}${fit.natural ? "" : fit.cover ? " · posição próxima" : " · fora de posição"}` : "Escolher jogador"}>
                     <Shirt n={i + 1} />

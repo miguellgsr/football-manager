@@ -18,8 +18,23 @@ export default function Page() {
 
   useEffect(() => {
     const s = loadSession();
-    (s ? start(s) : Promise.resolve()).finally(() => setReady(true));
+    (s ? start(s) : Promise.resolve()).then(() => {
+      if (!s) return;
+      try {
+        let n = JSON.parse(localStorage.getItem("fm-nav") || "null");
+        const h = location.hash.slice(1).split("/");
+        if (h.length === 2 && h[0]) n = { saveId: h[0], view: h[1] };
+        const known = listSaves();
+        if (n?.saveId && (known.length === 0 || known.some((x) => x.id === n.saveId))) { setSaveId(n.saveId); setView(n.view || "squad"); }
+      } catch {}
+    }).finally(() => setReady(true));
   }, []);
+
+  useEffect(() => {
+    if (!ready || !session) return;
+    try { localStorage.setItem("fm-nav", JSON.stringify(view === "home" ? {} : { saveId, view })); } catch {}
+    try { history.replaceState(null, "", view === "home" || !saveId ? location.pathname : `#${saveId}/${view}`); } catch {}
+  }, [ready, session, saveId, view]);
 
   if (!ready) return null;
   if (!session) return <AuthGate onDone={start} />;
