@@ -2,11 +2,13 @@
 import { useEffect, useState } from "react";
 import { createSave, deleteSave, listSaves, loadState, renameSave } from "@/lib/saves";
 import { initialState, SaveMeta } from "@/lib/types";
+import { applyTheme } from "@/lib/theme";
+import ClubPicker, { ClubChoice } from "./ClubPicker";
 
 export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
   const [saves, setSaves] = useState<SaveMeta[]>([]);
   const [name, setName] = useState("");
-  const [club, setClub] = useState("");
+  const [choice, setChoice] = useState<ClubChoice>({ club: "" });
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
@@ -14,10 +16,11 @@ export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
 
   const reload = () => setSaves(listSaves().sort((a, b) => b.updatedAt - a.updatedAt));
   useEffect(reload, []);
+  useEffect(() => { applyTheme(choice.colors); return () => applyTheme(null); }, [choice.colors]);
 
   const create = () => {
     if (!name.trim()) return;
-    const m = createSave(name, club);
+    const m = createSave(name, choice.club, undefined, { country: choice.country, league: choice.league, colors: choice.colors });
     onOpen(m.id);
   };
 
@@ -64,7 +67,7 @@ export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
                 ) : (
                   <>
                     <b>{s.name}</b>
-                    <div className="mute" style={{ fontSize: ".85rem" }}>{s.club ? `${s.club} · ` : ""}{count} jogadores · atualizado em {fmt(s.updatedAt)}</div>
+                    <div className="mute" style={{ fontSize: ".85rem" }}>{s.colors && <><span className="swatch" style={{ background: s.colors.p }} /> <span className="swatch" style={{ background: s.colors.s }} /> </>}{s.club ? `${s.club} · ` : ""}{count} jogadores · atualizado em {fmt(s.updatedAt)}</div>
                   </>
                 )}
               </div>
@@ -88,10 +91,9 @@ export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
 
       <div className="card">
         <h2>Novo save</h2>
-        <div className="grid2">
-          <div className="field"><label>Nome do save</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Carreira Flamengo 2027" onKeyDown={(e) => e.key === "Enter" && create()} /></div>
-          <div className="field"><label>Clube (opcional)</label><input value={club} onChange={(e) => setClub(e.target.value)} placeholder="Ex.: Flamengo" onKeyDown={(e) => e.key === "Enter" && create()} /></div>
-        </div>
+        <div className="field"><label>Nome do save</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Carreira Flamengo 2027" onKeyDown={(e) => e.key === "Enter" && create()} /></div>
+        <h3 style={{ marginTop: ".4rem" }}>Clube do save (define as cores da página)</h3>
+        <ClubPicker value={choice} onChange={(c) => { setChoice(c); if (!name.trim() && c.club && c.league) setName(`Carreira ${c.club}`); }} />
         <div className="row">
           <button className="btn" disabled={!name.trim()} onClick={create}>Criar e abrir</button>
           <label className="btn ghost" style={{ margin: 0, cursor: "pointer", color: "var(--text)", fontSize: "1rem" }}>

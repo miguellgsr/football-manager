@@ -5,9 +5,11 @@ import { bestOverall } from "@/lib/roles";
 import { contractYear, moneyNum } from "@/lib/import";
 import { ATTR_GROUPS, initialState, Player, State } from "@/lib/types";
 import PlayerEditor from "./PlayerEditor";
+import ClubPicker from "./ClubPicker";
+import { setIdentity } from "@/lib/saves";
 import { scoreClass } from "./Squad";
 
-export default function Extras({ state, setState, accessCode, setAccessCode, saveName }: Props & { saveName: string }) {
+export default function Extras({ state, setState, accessCode, setAccessCode, saveName, saveId, meta }: Props & { saveName: string; saveId: string; meta?: { country?: string; league?: string; colors?: { p: string; s: string } } }) {
   const [editing, setEditing] = useState<Player | null>(null);
   const [a, setA] = useState("");
   const [b, setB] = useState("");
@@ -46,6 +48,13 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
     <>
       <div className="card">
         <h2>Clube — {saveName}</h2>
+        <details style={{ marginBottom: ".8rem" }}>
+          <summary className="mute" style={{ cursor: "pointer" }}>Trocar clube / cores do save</summary>
+          <ClubPicker
+            value={{ club: state.club.name, country: meta?.country, league: meta?.league, colors: meta?.colors }}
+            onChange={(c) => { setIdentity(saveId, c.club, { country: c.country, league: c.league, colors: c.colors }); setClub({ name: c.club }); }}
+          />
+        </details>
         <div className="grid2">
           <div className="field"><label>Nome do clube</label><input value={state.club.name} onChange={(e) => setClub({ name: e.target.value })} /></div>
           <div className="field"><label>Estilo / filosofia desejada</label><input value={state.club.style} onChange={(e) => setClub({ style: e.target.value })} placeholder="Ex.: posse e pressão alta, jovens do clube…" /></div>

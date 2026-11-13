@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { applyTheme } from "@/lib/theme";
 import { useAccess, useSaveState } from "@/lib/client";
 import { listSaves } from "@/lib/saves";
 import Squad from "./Squad";
@@ -25,6 +26,7 @@ export default function SaveApp({ id, onExit }: { id: string; onExit: () => void
   const [tab, setTab] = useState<Tab>("squad");
   const [prefill, setPrefill] = useState("");
   const meta = listSaves().find((s) => s.id === id);
+  useEffect(() => { applyTheme(meta?.colors); return () => applyTheme(null); }, [meta?.colors?.p, meta?.colors?.s]);
   const props = { state, setState, accessCode, setAccessCode };
 
   return (
@@ -45,7 +47,7 @@ export default function SaveApp({ id, onExit }: { id: string; onExit: () => void
         {tab === "import" && <ImportTab {...props} />}
         {tab === "transfers" && <Transfers {...props} prefill={prefill} clearPrefill={() => setPrefill("")} />}
         {tab === "tactics" && <Tactics {...props} />}
-        {tab === "extras" && <Extras {...props} saveName={meta?.name ?? "save"} />}
+        {tab === "extras" && <Extras {...props} saveName={meta?.name ?? "save"} saveId={id} meta={meta} />}
       </main>
     </>
   );

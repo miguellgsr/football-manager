@@ -36,10 +36,15 @@ export interface ChatMsg {
   data?: any; // dados estruturados da resposta da IA
 }
 
+export interface ClubColors { p: string; s: string }
+
 export interface SaveMeta {
   id: string;
   name: string;
   club?: string;
+  country?: string;
+  league?: string;
+  colors?: ClubColors;
   createdAt: number;
   updatedAt: number;
 }

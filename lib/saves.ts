@@ -1,4 +1,4 @@
-import { initialState, SaveMeta, State, uid } from "./types";
+import { ClubColors, initialState, SaveMeta, State, uid } from "./types";
 
 const IDX = "fm-saves-index";
 const OLD = "fm-planner-v1";
@@ -49,8 +49,10 @@ export function saveState(id: string, state: State) {
   }
 }
 
-export function createSave(name: string, club = "", state?: State): SaveMeta {
-  const meta: SaveMeta = { id: uid(), name: name.trim() || "Novo save", club, createdAt: Date.now(), updatedAt: Date.now() };
+export interface Identity { country?: string; league?: string; colors?: ClubColors }
+
+export function createSave(name: string, club = "", state?: State, identity?: Identity): SaveMeta {
+  const meta: SaveMeta = { id: uid(), name: name.trim() || "Novo save", club, ...identity, createdAt: Date.now(), updatedAt: Date.now() };
   const base = state ?? { ...initialState, club: { ...initialState.club, name: club } };
   try { localStorage.setItem(key(meta.id), JSON.stringify(base)); } catch {}
   writeIndex([...listSaves(), meta]);
@@ -64,4 +66,8 @@ export function renameSave(id: string, name: string) {
 export function deleteSave(id: string) {
   try { localStorage.removeItem(key(id)); } catch {}
   writeIndex(listSaves().filter((s) => s.id !== id));
+}
+
+export function setIdentity(id: string, club: string, identity: Identity) {
+  writeIndex(listSaves().map((s) => (s.id === id ? { ...s, club, ...identity } : s)));
 }
