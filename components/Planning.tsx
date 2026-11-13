@@ -79,7 +79,7 @@ export default function Planning({ state, setState, askAi }: Props & { askAi: (m
                       })}
                       {s.cover.length > 0 && s.level !== "ok" && (
                         <div className="mute" style={{ fontSize: ".68rem", marginTop: ".2rem" }}>
-                          improvisa: {s.cover.slice(0, 3).map((p) => p.name.split(" ").slice(-1)[0]).join(", ")}{s.cover.length > 3 ? "…" : ""}
+                          improvisa: {s.cover.slice(0, 3).map((p) => p.name).join(", ")}{s.cover.length > 3 ? "…" : ""}
                         </div>
                       )}
                     </div>
