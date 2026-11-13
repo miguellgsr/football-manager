@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "./Dropdown";
 import { useMemo } from "react";
 import { FORMATIONS, ALL_POS } from "@/lib/formations";
 import { positionStatus } from "@/lib/analysis";
@@ -40,9 +41,7 @@ export default function Planning({ state, setState, askAi }: Props & { askAi: (m
             <h2 style={{ margin: 0 }}>Planejamento do elenco</h2>
             <span className="mute" style={{ fontSize: ".78rem" }}>Todos os jogadores nas suas posições · contador = jogadores de origem / desejados</span>
           </div>
-          <select style={{ width: "auto" }} value={state.formation} onChange={(e) => setState((s) => ({ ...s, formation: e.target.value, lineup: {} }))}>
-            {Object.keys(FORMATIONS).map((f) => <option key={f}>{f}</option>)}
-          </select>
+          <Select width={110} value={state.formation} onChange={(v) => setState((s) => ({ ...s, formation: v, lineup: {} }))} options={Object.keys(FORMATIONS).map((f) => ({ value: f, label: f }))} />
         </div>
         {squad.length === 0 ? <p className="mute">Importe jogadores para ver o planejamento.</p> : (
           <div className="pitchwrap">

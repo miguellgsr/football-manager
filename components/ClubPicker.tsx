@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { CATALOG } from "@/lib/clubs";
 import { ClubColors } from "@/lib/types";
+import { Dropdown, Select } from "./Dropdown";
 
 export interface ClubChoice { club: string; country?: string; league?: string; colors?: ClubColors }
 
@@ -9,6 +10,7 @@ export default function ClubPicker({ value, onChange }: { value: ClubChoice; onC
   const [country, setCountry] = useState("");
   const [league, setLeague] = useState("");
   const [q, setQ] = useState("");
+  const [openCt, setOpenCt] = useState("");
 
   const cObj = CATALOG.find((c) => c.name === country);
   const lObj = cObj?.leagues.find((l) => l.name === league);
@@ -40,21 +42,26 @@ export default function ClubPicker({ value, onChange }: { value: ClubChoice; onC
       <div className="grid2">
         <div className="field">
           <label>País</label>
-          <select value={country} onChange={(e) => { setCountry(e.target.value); setLeague(""); }}>
-            <option value="">Escolha...</option>
-            {continents.map((ct) => (
-              <optgroup key={ct} label={ct}>
-                {CATALOG.filter((c) => c.continent === ct).map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
-              </optgroup>
+          <Dropdown label={country ? `${country}` : <span className="mute">Escolha o continente e o país</span>}>
+            {(close) => continents.map((ct) => (
+              <div key={ct}>
+                <button type="button" className={"sel-grp" + (openCt === ct ? " open" : "")} onClick={() => setOpenCt(openCt === ct ? "" : ct)}>
+                  <span>{ct}</span><span className="arrow">›</span>
+                </button>
+                {openCt === ct && (
+                  <div className="sel-sub">
+                    {CATALOG.filter((c) => c.continent === ct).map((c) => (
+                      <button key={c.name} type="button" className={"sel-opt" + (country === c.name ? " on" : "")} onClick={() => { setCountry(c.name); setLeague(""); close(); }}>{c.name}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
-          </select>
+          </Dropdown>
         </div>
         <div className="field">
           <label>Liga</label>
-          <select value={league} disabled={!cObj} onChange={(e) => setLeague(e.target.value)}>
-            <option value="">Escolha...</option>
-            {cObj?.leagues.map((l) => <option key={l.name} value={l.name}>{l.name}</option>)}
-          </select>
+          <Select disabled={!cObj} value={league} onChange={setLeague} options={(cObj?.leagues ?? []).map((l) => ({ value: l.name, label: l.name }))} />
         </div>
       </div>
       <div className="field"><label>Ou busque o clube pelo nome</label><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ex.: Flamengo, Chelsea, Boca..." /></div>

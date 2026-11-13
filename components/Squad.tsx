@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "./Dropdown";
 import { useMemo, useState } from "react";
 import { FORMATIONS, NEIGHBORS } from "@/lib/formations";
 import { bestOverall, bestRoleFor } from "@/lib/roles";
@@ -75,9 +76,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
               <span className="mute" style={{ fontSize: ".78rem" }}>Titulares definidos: {startersCount}/11 · clique num jogador para trocar</span>
             </div>
             <div className="row">
-              <select style={{ width: "auto" }} value={state.formation} onChange={(e) => setState((s) => ({ ...s, formation: e.target.value, lineup: {} }))}>
-                {Object.keys(FORMATIONS).map((f) => <option key={f}>{f}</option>)}
-              </select>
+              <Select width={110} value={state.formation} onChange={(v) => setState((s) => ({ ...s, formation: v, lineup: {} }))} options={Object.keys(FORMATIONS).map((f) => ({ value: f, label: f }))} />
               <button className="btn sm" disabled={squad.length === 0} onClick={autoPick}>Melhor 11</button>
               <button className="btn ghost sm" onClick={() => setState((s) => ({ ...s, lineup: {} }))}>Limpar</button>
             </div>

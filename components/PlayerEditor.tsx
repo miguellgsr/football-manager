@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "./Dropdown";
 import { useState } from "react";
 import { ALL_POS } from "@/lib/formations";
 import { ATTR_GROUPS, Player, Pos } from "@/lib/types";
@@ -44,10 +45,7 @@ export default function PlayerEditor({
             <div className="field" style={{ flex: 1 }}><label>CA (opcional)</label><input type="number" value={p.ca ?? ""} onChange={(e) => set({ ca: e.target.value ? +e.target.value : undefined })} /></div>
             <div className="field" style={{ flex: 1 }}><label>PA (opcional)</label><input type="number" value={p.pa ?? ""} onChange={(e) => set({ pa: e.target.value ? +e.target.value : undefined })} /></div>
             <div className="field" style={{ flex: 1 }}><label>Lista</label>
-              <select value={p.status} onChange={(e) => set({ status: e.target.value as Player["status"] })}>
-                <option value="squad">Elenco</option>
-                <option value="shortlist">Shortlist</option>
-              </select>
+              <Select value={p.status} onChange={(v) => set({ status: v as Player["status"] })} options={[{ value: "squad", label: "Elenco" }, { value: "shortlist", label: "Shortlist" }]} />
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "./Dropdown";
 import { useMemo, useState } from "react";
 import type { Props } from "@/lib/client";
 import { bestOverall } from "@/lib/roles";
@@ -135,8 +136,8 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
       {sec === "comparador" && <div>
         <h2>Comparador</h2>
         <div className="row" style={{ marginBottom: ".6rem" }}>
-          <select value={a} onChange={(e) => setA(e.target.value)} style={{ maxWidth: 260 }}><option value="">Jogador A</option>{state.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-          <select value={b} onChange={(e) => setB(e.target.value)} style={{ maxWidth: 260 }}><option value="">Jogador B</option>{state.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+          <Select width={240} value={a} onChange={setA} placeholder="Jogador A" options={state.players.map((p) => ({ value: p.id, label: p.name }))} />
+          <Select width={240} value={b} onChange={setB} placeholder="Jogador B" options={state.players.map((p) => ({ value: p.id, label: p.name }))} />
         </div>
         {pa && pb && (
           <table>

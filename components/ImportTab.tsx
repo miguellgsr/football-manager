@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/Dropdown";
 import { useEffect, useRef, useState } from "react";
 import { callApi, Props } from "@/lib/client";
 import { fileToJpegBase64, importFile, mergePlayers, parsePositions } from "@/lib/import";
@@ -152,10 +153,7 @@ export default function ImportTab({ state, setState, accessCode }: Props) {
         <div className="grid2">
           <div className="field">
             <label>Adicionar como</label>
-            <select value={target} onChange={(e) => setTarget(e.target.value as Player["status"])}>
-              <option value="squad">Meu elenco</option>
-              <option value="shortlist">Shortlist (alvos)</option>
-            </select>
+            <Select value={target} onChange={(v) => setTarget(v as Player["status"])} options={[{ value: "squad", label: "Meu elenco" }, { value: "shortlist", label: "Shortlist (alvos)" }]} />
           </div>
         </div>
         <p className="mute" style={{ marginTop: 0 }}>{modeHelp[mode]}</p>
