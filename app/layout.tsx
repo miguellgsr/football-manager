@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FM Planner — elenco, transferências e táticas com IA",
+  title: "FM Mate — elenco, transferências e táticas com IA",
   description: "Planeje seu elenco no Football Manager com sugestões de IA.",
 };
 

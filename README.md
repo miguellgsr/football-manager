@@ -1,4 +1,4 @@
-# FM Planner
+# FM Mate
 
 Site para Football Manager: planejador de elenco, sugestões de transferência e táticas com IA (Claude), comparador, contratos, jovens promessas e shortlist.
 

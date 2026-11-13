@@ -32,7 +32,7 @@ export default function SaveApp({ id, onExit }: { id: string; onExit: () => void
   return (
     <>
       <header className="top">
-        <div className="brand">FM <span>Planner</span></div>
+        <div className="brand">FM <span>Mate</span></div>
         <button className="btn ghost sm" onClick={onExit} title="Voltar para a lista de saves">⇄ {meta?.name ?? "Save"}{state.club.name ? ` · ${state.club.name}` : ""}</button>
         <nav className="tabs">
           {TABS.map(([tid, label]) => (

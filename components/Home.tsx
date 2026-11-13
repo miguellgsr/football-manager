@@ -47,7 +47,7 @@ export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <main style={{ maxWidth: 900 }}>
-      <h1 style={{ fontSize: "1.8rem", marginTop: "2rem" }}>FM <span style={{ color: "var(--accent)" }}>Planner</span></h1>
+      <h1 style={{ fontSize: "1.8rem", marginTop: "2rem" }}>FM <span style={{ color: "var(--accent)" }}>Mate</span></h1>
       <p className="mute">Escolha o save que você quer trabalhar. Cada save tem elenco, shortlist, táticas e conversas próprios, sem interferir nos outros.</p>
 
       <div className="card">
