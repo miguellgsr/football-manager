@@ -2,13 +2,13 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FM Mate — elenco, transferências e táticas com IA",
-  description: "Planeje seu elenco no Football Manager com sugestões de IA.",
+  title: "FM Mate — squad, transfers and tactics with AI",
+  description: "Plan your Football Manager squad with AI suggestions.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

@@ -2,7 +2,7 @@
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-/** Botão que abre um painel "liquid glass" (renderizado fora dos cards para não ser cortado). */
+/** Button that opens a "liquid glass" panel (rendered outside cards so it is not clipped). */
 export function Dropdown({ label, disabled, width, children }: {
   label: ReactNode; disabled?: boolean; width?: number | string; children: (close: () => void) => ReactNode;
 }) {
@@ -45,7 +45,7 @@ export function Dropdown({ label, disabled, width, children }: {
 
 export interface Opt { value: string; label: string }
 
-export function Select({ value, onChange, options, placeholder = "Escolha...", disabled, width }: {
+export function Select({ value, onChange, options, placeholder = "Choose...", disabled, width }: {
   value: string; onChange: (v: string) => void; options: Opt[]; placeholder?: string; disabled?: boolean; width?: number | string;
 }) {
   const cur = options.find((o) => o.value === value);

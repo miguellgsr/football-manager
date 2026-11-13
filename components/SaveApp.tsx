@@ -11,16 +11,16 @@ import Tactics from "./Tactics";
 import Extras from "./Extras";
 
 export const SAVE_VIEWS = [
-  ["squad", "Time titular"],
-  ["planning", "Planejamento"],
-  ["import", "Importar"],
-  ["transfers", "Transferências IA"],
-  ["tactics", "Táticas IA"],
-  ["extras", "Extras & Clube"],
+  ["squad", "Starting XI"],
+  ["planning", "Planning"],
+  ["import", "Import"],
+  ["transfers", "Transfers AI"],
+  ["tactics", "Tactics AI"],
+  ["extras", "Extras & Club"],
 ] as const;
 export type SaveView = (typeof SAVE_VIEWS)[number][0];
 
-/** Conteúdo (área central) de um save. A navegação fica no menu lateral. */
+/** Content (central area) of a save. Navigation lives in the sidebar. */
 export default function SaveApp({ id, view, setView }: { id: string; view: SaveView; setView: (v: SaveView) => void }) {
   const { state, setState } = useSaveState(id);
   const [accessCode, setAccessCode] = useAccess();

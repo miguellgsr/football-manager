@@ -8,7 +8,7 @@ Sua tarefa: ler o elenco inteiro e decidir qual tática e qual estilo de jogo me
 1) Compare pelo menos 3 combinações candidatas (formação + estilo, ex.: "4-3-3 pressão alta e posse", "4-2-3-1 contra-ataque"), dê uma nota de encaixe 0-100 para cada e explique em uma frase, citando atributos coletivos reais (ex.: velocidade e aceleração dos pontas, passe e visão do meio, altura/força dos zagueiros, resistência).
 2) Detalhe a melhor: mentalidade, instruções com e sem a bola, transição, função e dever de cada titular (use os jogadores reais e seus atributos) e como esconder pontos fracos.
 3) Se a melhor formação deixa posições sem jogador adequado, diga quais e o que faria como solução interina (improvisar quem?) ou reforço.
-Use nomes de funções como aparecem no FM em português do Brasil quando possível. Seja concreto.
+Responda em português do Brasil, mas use SEMPRE os termos do Football Manager em inglês, como o jogo (versão em inglês) os exibe: nomes de funções (ex.: "Inverted Wing-Back", "Deep Lying Playmaker", "Mezzala", "Advanced Forward"), deveres (Defend, Support, Attack, Cover, Stopper), atributos (ex.: "Off The Ball", "Work Rate", "Jumping Reach"), instruções e mentalidades (ex.: "Positive", "Counter", "Higher Defensive Line", "Work Ball Into Box"). Seja concreto.
 Formato de saída (JSON):
 {
  "candidates": [{"formation": string, "style": string, "fit": number, "why": string, "risk": string}],
@@ -19,7 +19,7 @@ Formato de saída (JSON):
  "inPossession": string[],
  "outOfPossession": string[],
  "transition": string[],
- "lineup": [{"slot": string, "playerId": string, "role": string, "duty": "Defender"|"Apoiar"|"Atacar", "why": string}],
+ "lineup": [{"slot": string, "playerId": string, "role": string, "duty": "Defend"|"Support"|"Attack"|"Cover"|"Stopper", "why": string}],
  "weaknesses": [{"issue": string, "fix": string}],
  "setPieces": string,
  "alternativePlan": string

@@ -1,30 +1,30 @@
 import { roleScore, ROLES } from "./roles";
 import type { Player, Pos } from "./types";
 
-export const DUTY_SHORT: Record<string, string> = { Defender: "Def", Apoiar: "Apo", Atacar: "Ata", Cobertura: "Cob", Stopper: "Stp" };
+export const DUTY_SHORT: Record<string, string> = { Defend: "De", Support: "Su", Attack: "At", Cover: "Co", Stopper: "St" };
 
 export interface FmRole { id: string; name: string; duties: string[]; base: string }
-const D = ["Defender"], S = ["Apoiar"], A = ["Atacar"];
-const DSA = ["Defender", "Apoiar", "Atacar"], SA = ["Apoiar", "Atacar"], DS = ["Defender", "Apoiar"];
-const CB3 = ["Defender", "Cobertura", "Stopper"];
+const D = ["Defend"], S = ["Support"], A = ["Attack"];
+const DSA = ["Defend", "Support", "Attack"], SA = ["Support", "Attack"], DS = ["Defend", "Support"];
+const CB3 = ["Defend", "Cover", "Stopper"];
 const r = (id: string, name: string, duties: string[], base: string): FmRole => ({ id, name, duties, base });
 
-const FB = [r("fb", "Lateral", DSA, "fb"), r("wb", "Ala", DSA, "wb"), r("iwb", "Ala invertido", DSA, "fb"), r("ifb", "Lateral invertido", D, "fb"), r("nnfb", "Lateral sem frescura", D, "fb"), r("cwb", "Ala completo", SA, "wb")];
-const W = [r("wg", "Ponta", SA, "w"), r("ifw", "Atacante interior", SA, "if"), r("iw", "Ponta invertido", SA, "if"), r("wp", "Armador aberto", SA, "ap"), r("rd", "Raumdeuter", A, "if"), r("dw", "Ponta defensivo", DS, "w")];
+const FB = [r("fb", "Full-Back", DSA, "fb"), r("wb", "Wing-Back", DSA, "wb"), r("iwb", "Inverted Wing-Back", DSA, "fb"), r("ifb", "Inverted Full-Back", D, "fb"), r("nnfb", "No-Nonsense Full-Back", D, "fb"), r("cwb", "Complete Wing-Back", SA, "wb")];
+const W = [r("wg", "Winger", SA, "w"), r("ifw", "Inside Forward", SA, "if"), r("iw", "Inverted Winger", SA, "if"), r("wp", "Wide Playmaker", SA, "ap"), r("rd", "Raumdeuter", A, "if"), r("dw", "Defensive Winger", DS, "w")];
 
 export const FM_ROLES: Record<Pos, FmRole[]> = {
-  GK: [r("gk", "Goleiro", D, "gk"), r("sk", "Goleiro-líbero", DSA, "sk")],
-  CB: [r("cd", "Zagueiro", CB3, "cd"), r("bpd", "Zagueiro construtor", CB3, "bpd"), r("wcb", "Zagueiro aberto", DSA, "cd"), r("lib", "Líbero", DS, "bpd"), r("nncb", "Zagueiro sem frescura", CB3, "cd")],
+  GK: [r("gk", "Goalkeeper", D, "gk"), r("sk", "Sweeper Keeper", DSA, "sk")],
+  CB: [r("cd", "Central Defender", CB3, "cd"), r("bpd", "Ball Playing Defender", CB3, "bpd"), r("wcb", "Wide Centre-Back", DSA, "cd"), r("lib", "Libero", DS, "bpd"), r("nncb", "No-Nonsense Centre-Back", CB3, "cd")],
   RB: FB, LB: FB,
-  RWB: [r("wb", "Ala", DSA, "wb"), r("iwb", "Ala invertido", DSA, "fb"), r("cwb", "Ala completo", SA, "wb")],
-  LWB: [r("wb", "Ala", DSA, "wb"), r("iwb", "Ala invertido", DSA, "fb"), r("cwb", "Ala completo", SA, "wb")],
-  DM: [r("anc", "Volante âncora", D, "anchor"), r("hb", "Meio-campista recuado", D, "anchor"), r("dlp", "Armador recuado", DS, "dlp"), r("dm", "Volante defensivo", DS, "anchor"), r("reg", "Regista", S, "dlp"), r("bwm", "Volante desarmador", DS, "bwm"), r("sv", "Segundo volante", SA, "b2b")],
-  CM: [r("cm", "Meia central", DSA, "b2b"), r("b2b", "Box-to-box", S, "b2b"), r("ap", "Armador avançado", SA, "ap"), r("bwm", "Volante desarmador", DS, "bwm"), r("mz", "Mezzala", SA, "ap"), r("car", "Carrilero", DS, "b2b"), r("dlp", "Armador recuado", DS, "dlp"), r("rpm", "Armador móvel", S, "ap")],
-  RM: [r("wm", "Meia aberto", DSA, "w"), r("wg", "Ponta", SA, "w"), r("wp", "Armador aberto", SA, "ap"), r("dw", "Ponta defensivo", DS, "w")],
-  LM: [r("wm", "Meia aberto", DSA, "w"), r("wg", "Ponta", SA, "w"), r("wp", "Armador aberto", SA, "ap"), r("dw", "Ponta defensivo", DS, "w")],
+  RWB: [r("wb", "Wing-Back", DSA, "wb"), r("iwb", "Inverted Wing-Back", DSA, "fb"), r("cwb", "Complete Wing-Back", SA, "wb")],
+  LWB: [r("wb", "Wing-Back", DSA, "wb"), r("iwb", "Inverted Wing-Back", DSA, "fb"), r("cwb", "Complete Wing-Back", SA, "wb")],
+  DM: [r("anc", "Anchor", D, "anchor"), r("hb", "Half Back", D, "anchor"), r("dlp", "Deep Lying Playmaker", DS, "dlp"), r("dm", "Defensive Midfielder", DS, "anchor"), r("reg", "Regista", S, "dlp"), r("bwm", "Ball Winning Midfielder", DS, "bwm"), r("sv", "Segundo Volante", SA, "b2b")],
+  CM: [r("cm", "Central Midfielder", DSA, "b2b"), r("b2b", "Box To Box Midfielder", S, "b2b"), r("ap", "Advanced Playmaker", SA, "ap"), r("bwm", "Ball Winning Midfielder", DS, "bwm"), r("mz", "Mezzala", SA, "ap"), r("car", "Carrilero", DS, "b2b"), r("dlp", "Deep Lying Playmaker", DS, "dlp"), r("rpm", "Roaming Playmaker", S, "ap")],
+  RM: [r("wm", "Wide Midfielder", DSA, "w"), r("wg", "Winger", SA, "w"), r("wp", "Wide Playmaker", SA, "ap"), r("dw", "Defensive Winger", DS, "w")],
+  LM: [r("wm", "Wide Midfielder", DSA, "w"), r("wg", "Winger", SA, "w"), r("wp", "Wide Playmaker", SA, "ap"), r("dw", "Defensive Winger", DS, "w")],
   RW: W, LW: W,
-  AM: [r("am", "Meia-atacante", SA, "am"), r("ap", "Armador avançado", SA, "ap"), r("eng", "Enganche", S, "ap"), r("ss", "Atacante de sombra", A, "am"), r("tq", "Trequartista", A, "am")],
-  ST: [r("af", "Centroavante avançado", A, "cf"), r("cf", "Atacante completo", SA, "cf"), r("dlf", "Atacante recuado", SA, "cf"), r("pf", "Atacante pressionador", DSA, "pf"), r("tf", "Pivô", SA, "tm"), r("poa", "Matador", A, "poacher"), r("f9", "Falso nove", S, "cf")],
+  AM: [r("am", "Attacking Midfielder", SA, "am"), r("ap", "Advanced Playmaker", SA, "ap"), r("eng", "Enganche", S, "ap"), r("ss", "Shadow Striker", A, "am"), r("tq", "Trequartista", A, "am")],
+  ST: [r("af", "Advanced Forward", A, "cf"), r("cf", "Complete Forward", SA, "cf"), r("dlf", "Deep Lying Forward", SA, "cf"), r("pf", "Pressing Forward", DSA, "pf"), r("tf", "Target Forward", SA, "tm"), r("poa", "Poacher", A, "poacher"), r("f9", "False Nine", S, "cf")],
 };
 
 export const findRole = (pos: Pos, id?: string) => (id ? FM_ROLES[pos].find((x) => x.id === id) : undefined);
@@ -50,3 +50,10 @@ export function posFromXY(x: number, y: number, current: Pos): Pos {
   if (y >= 22) return left ? "LW" : right ? "RW" : "AM";
   return left ? "LW" : right ? "RW" : "ST";
 }
+
+export const POS_LABEL: Record<Pos, string> = {
+  GK: "GK · Goalkeeper", RB: "D (R) · Right Back", CB: "D (C) · Centre Back", LB: "D (L) · Left Back",
+  RWB: "WB (R) · Right Wing-Back", LWB: "WB (L) · Left Wing-Back", DM: "DM · Defensive Midfielder",
+  RM: "M (R) · Right Midfielder", CM: "M (C) · Central Midfielder", LM: "M (L) · Left Midfielder",
+  RW: "AM (R) · Right Winger", AM: "AM (C) · Attacking Midfielder", LW: "AM (L) · Left Winger", ST: "ST · Striker",
+};

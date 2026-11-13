@@ -3,7 +3,7 @@ import { Select } from "./Dropdown";
 import { useMemo, useRef, useState } from "react";
 import { effectiveSlots } from "@/lib/board";
 import { cellXY, COLS, ROWS, snapCell, posFromCell } from "@/lib/grid";
-import { FM_ROLES, DUTY_SHORT, findRole } from "@/lib/fmroles";
+import { FM_ROLES, DUTY_SHORT, findRole, POS_LABEL } from "@/lib/fmroles";
 import { FORMATIONS, NEIGHBORS } from "@/lib/formations";
 import { bestOverall, bestRoleFor } from "@/lib/roles";
 import { Player, Pos, uid } from "@/lib/types";
@@ -44,7 +44,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
       else {
         const pos = effectiveSlots(st)[i].pos;
         const fr = findRole(pos, role);
-        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Apoiar" };
+        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Support" };
       }
       return { ...st, board: { slots: b.slots, roles } };
     });
@@ -200,7 +200,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
           )}
           <div className="scroll">
             <table>
-              <thead><tr><th>Nome</th><th>Pos</th><th>Id.</th><th>Melhor função</th><th>Contrato</th></tr></thead>
+              <thead><tr><th>Nome</th><th>Pos</th><th>Id.</th><th>Best role</th><th>Contrato</th></tr></thead>
               <tbody>
                 {byPos.map((p) => {
                   const b = bestOverall(p);
@@ -229,9 +229,9 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
               <button className="btn ghost sm" onClick={() => setPicking(null)}>Fechar</button>
             </div>
             <div className="row" style={{ gap: ".5rem", margin: ".4rem 0 .6rem", flexWrap: "wrap" }}>
-              <Select width={100} value={slots[picking].pos} onChange={(v) => patchSlot(picking, { pos: v as Pos })} options={POS_ORDER.map((x) => ({ value: x, label: x }))} />
-              <Select width={210} value={slots[picking].role ?? ""} onChange={(v) => setRole(picking, v || undefined)}
-                options={[{ value: "", label: "Sem função" }, ...FM_ROLES[slots[picking].pos].map((r) => ({ value: r.id, label: r.name }))]} />
+              <Select width={230} value={slots[picking].pos} onChange={(v) => patchSlot(picking, { pos: v as Pos })} options={POS_ORDER.map((x) => ({ value: x, label: POS_LABEL[x] }))} />
+              <Select width={240} value={slots[picking].role ?? ""} onChange={(v) => setRole(picking, v || undefined)}
+                options={[{ value: "", label: "No role" }, ...FM_ROLES[slots[picking].pos].map((r) => ({ value: r.id, label: r.name }))]} />
               {slots[picking].role && (
                 <Select width={120} value={slots[picking].duty ?? ""} onChange={(v) => setRole(picking, slots[picking].role, v)}
                   options={(findRole(slots[picking].pos, slots[picking].role)?.duties ?? []).map((d) => ({ value: d, label: d }))} />

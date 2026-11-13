@@ -13,6 +13,7 @@ const IDX = () => `fm:${NS}:index`;
 const key = (id: string) => `fm:${NS}:save:${id}`;
 const LEGACY_IDX = "fm-saves-index";
 const LEGACY_OLD = "fm-planner-v1";
+const LEGACY_DONE = "fm-legacy-adopted";
 
 export function writeIndex(m: SaveMeta[]) {
   try { localStorage.setItem(IDX(), JSON.stringify(m)); } catch {}
@@ -24,6 +25,9 @@ export function writeSave(id: string, s: State) {
 /** Traz para o usuário os saves antigos deste navegador (versões anteriores, sem login). */
 export function adoptLegacy() {
   try {
+    // saves antigos (sem login) pertencem a quem entrar primeiro; depois disso ninguém mais os herda
+    if (localStorage.getItem(LEGACY_DONE)) return;
+    localStorage.setItem(LEGACY_DONE, NS);
     if (localStorage.getItem(IDX())) return;
     const raw = localStorage.getItem(LEGACY_IDX);
     if (raw) {

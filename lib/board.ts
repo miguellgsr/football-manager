@@ -2,6 +2,8 @@ import { FORMATIONS, Slot } from "./formations";
 import { cellXY, COLS, snapCell } from "./grid";
 import type { Pos, State } from "./types";
 
+const LEGACY: Record<string, string> = { Defender: "Defend", Apoiar: "Support", Atacar: "Attack", Cobertura: "Cover" };
+
 export interface EffSlot extends Slot { role?: string; duty?: string; c: number; r: number }
 
 /** Slots efetivos na grade do campo tático: formação base + ajustes do usuário (célula, posição, função, dever). */
@@ -19,6 +21,6 @@ export function effectiveSlots(state: Pick<State, "formation" | "board">): EffSl
     }
     used.add(c + "," + r);
     const { x, y } = cellXY(c, r);
-    return { pos: (o?.pos ?? s.pos) as Pos, x, y, c, r, role: ro?.role, duty: ro?.duty };
+    return { pos: (o?.pos ?? s.pos) as Pos, x, y, c, r, role: ro?.role, duty: ro?.duty ? LEGACY[ro.duty] ?? ro.duty : undefined };
   });
 }

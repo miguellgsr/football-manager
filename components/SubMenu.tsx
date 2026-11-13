@@ -2,7 +2,7 @@
 
 export interface SubItem { id: string; label: string; disabled?: boolean }
 
-/** Menu vertical com título "↩" e itens, no estilo do print de referência. */
+/** Vertical menu with a "↩" title and items, in the reference style. */
 export default function SubMenu({ title, onBack, items, active, onSelect, className }: {
   title: string; onBack?: () => void; items: SubItem[]; active: string; onSelect: (id: string) => void; className?: string;
 }) {

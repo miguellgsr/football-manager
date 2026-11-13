@@ -5,7 +5,7 @@ export const roleClass = (pos: Pos) =>
   pos === "GK" ? "r-gk" : ["CB", "RB", "LB"].includes(pos) ? "r-def" : ["RWB", "LWB"].includes(pos) ? "r-wb"
   : ["DM", "CM", "RM", "LM"].includes(pos) ? "r-mid" : pos === "AM" ? "r-am" : "r-att";
 
-/** Marcações do campo (linhas brancas translúcidas), no estilo da tela de táticas do FM. */
+/** Pitch markings (translucent white lines), in the style of the FM tactics screen. */
 export function PitchLines() {
   const st = { stroke: "rgba(255,255,255,.55)", strokeWidth: 0.5, fill: "none" } as const;
   return (

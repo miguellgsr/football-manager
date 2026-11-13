@@ -106,7 +106,7 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
         <h2>Jovens promessas do elenco (≤ 21 anos)</h2>
         {young.length === 0 ? <p className="mute">Nenhum jogador até 21 anos.</p> : (
           <table>
-            <thead><tr><th>Nome</th><th>Idade</th><th>Pos</th><th>Melhor função</th><th>PA</th></tr></thead>
+            <thead><tr><th>Nome</th><th>Idade</th><th>Pos</th><th>Best role</th><th>PA</th></tr></thead>
             <tbody>{young.map((p) => { const bo = bestOverall(p); return (
               <tr key={p.id} className="click" onClick={() => setEditing(p)}>
                 <td>{p.name}</td><td>{p.age}</td><td>{p.positions.join(", ")}</td>
@@ -121,7 +121,7 @@ export default function Extras({ state, setState, accessCode, setAccessCode, sav
         <h2>Shortlist</h2>
         {short.length === 0 ? <p className="mute">Importe prints de alvos escolhendo “Shortlist” na aba Importar.</p> : (
           <table>
-            <thead><tr><th>Nome</th><th>Idade</th><th>Pos</th><th>Melhor função</th><th>Valor</th><th></th></tr></thead>
+            <thead><tr><th>Nome</th><th>Idade</th><th>Pos</th><th>Best role</th><th>Valor</th><th></th></tr></thead>
             <tbody>{short.map((p) => { const bo = bestOverall(p); return (
               <tr key={p.id}>
                 <td className="click" onClick={() => setEditing(p)} style={{ cursor: "pointer" }}>{p.name}</td><td>{p.age}</td><td>{p.positions.join(", ")}</td>

@@ -81,7 +81,7 @@ export default function PlayerEditor({
         <div className="field"><label>Notas</label><textarea value={p.notes ?? ""} onChange={(e) => set({ notes: e.target.value })} /></div>
         {roleScores.length > 0 && (
           <div className="field">
-            <h3>Melhores funções (pelos atributos)</h3>
+            <h3>Best roles (by attributes)</h3>
             <div className="row">{roleScores.map(({ r, s }) => <span key={r.id} className="tag">{r.name}: {s}</span>)}</div>
           </div>
         )}

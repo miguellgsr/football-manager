@@ -39,7 +39,7 @@ export default function Tactics({ state, setState, accessCode }: Props) {
       if (!role) delete roles[String(i)];
       else {
         const fr = findRole(effectiveSlots(st)[i].pos, role);
-        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Apoiar" };
+        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Support" };
       }
       return { ...st, board: { slots: b.slots, roles } };
     });
@@ -82,7 +82,7 @@ export default function Tactics({ state, setState, accessCode }: Props) {
         <h2>Seu campo tático ({state.formation})</h2>
         <p className="mute" style={{ fontSize: ".85rem" }}>Defina a função e o dever de cada posição. As posições se movem arrastando os jogadores no campo da aba Time titular; a IA analisa exatamente este desenho.</p>
         <div className="scroll"><table>
-          <thead><tr><th>#</th><th>Pos</th><th>Jogador</th><th>Função</th><th>Dever</th><th>Encaixe</th></tr></thead>
+          <thead><tr><th>#</th><th>Pos</th><th>Jogador</th><th>Role</th><th>Duty</th><th>Fit</th></tr></thead>
           <tbody>
             {slots.map((sl, i) => {
               const pl = state.players.find((p) => p.id === state.lineup[String(i)]);
@@ -90,7 +90,7 @@ export default function Tactics({ state, setState, accessCode }: Props) {
               return (
                 <tr key={i}>
                   <td>{i + 1}</td><td>{sl.pos}</td><td>{pl ? pl.name : <span className="mute">—</span>}</td>
-                  <td><Select width={190} value={sl.role ?? ""} onChange={(v) => setRole(i, v || undefined)} options={[{ value: "", label: "Sem função" }, ...FM_ROLES[sl.pos].map((r) => ({ value: r.id, label: r.name }))]} /></td>
+                  <td><Select width={240} value={sl.role ?? ""} onChange={(v) => setRole(i, v || undefined)} options={[{ value: "", label: "No role" }, ...FM_ROLES[sl.pos].map((r) => ({ value: r.id, label: r.name }))]} /></td>
                   <td>{sl.role ? <Select width={110} value={sl.duty ?? ""} onChange={(v) => setRole(i, sl.role, v)} options={(findRole(sl.pos, sl.role)?.duties ?? []).map((d) => ({ value: d, label: d }))} /> : <span className="mute">—</span>}</td>
                   <td>{fit != null ? <span className={"score " + scoreClass(fit)}>{fit}</span> : <span className="mute">—</span>}</td>
                 </tr>
@@ -152,7 +152,7 @@ export default function Tactics({ state, setState, accessCode }: Props) {
           <div className="card">
             <h2>Funções por jogador</h2>
             <table>
-              <thead><tr><th>Posição</th><th>Jogador</th><th>Função</th><th>Dever</th><th>Por quê</th></tr></thead>
+              <thead><tr><th>Posição</th><th>Jogador</th><th>Role</th><th>Duty</th><th>Why</th></tr></thead>
               <tbody>{res.lineup?.map((l, i) => <tr key={i}><td>{l.slot}</td><td>{name(l.playerId)}</td><td>{l.role}</td><td>{l.duty}</td><td>{l.why}</td></tr>)}</tbody>
             </table>
           </div>

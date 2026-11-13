@@ -73,40 +73,40 @@ export const initialState: State = {
 
 export const ATTR_GROUPS: { title: string; keys: [string, string][] }[] = [
   {
-    title: "Técnicos",
+    title: "Technical",
     keys: [
-      ["corners", "Escanteios"], ["crossing", "Cruzamentos"], ["dribbling", "Drible"],
-      ["finishing", "Finalização"], ["firstTouch", "Primeiro toque"], ["freeKicks", "Faltas"],
-      ["heading", "Cabeceio"], ["longShots", "Chutes de longe"], ["longThrows", "Laterais longos"],
-      ["marking", "Marcação"], ["passing", "Passe"], ["penaltyTaking", "Pênaltis"],
-      ["tackling", "Desarme"], ["technique", "Técnica"],
+      ["corners", "Corners"], ["crossing", "Crossing"], ["dribbling", "Dribbling"],
+      ["finishing", "Finishing"], ["firstTouch", "First Touch"], ["freeKicks", "Free Kick Taking"],
+      ["heading", "Heading"], ["longShots", "Long Shots"], ["longThrows", "Long Throws"],
+      ["marking", "Marking"], ["passing", "Passing"], ["penaltyTaking", "Penalty Taking"],
+      ["tackling", "Tackling"], ["technique", "Technique"],
     ],
   },
   {
-    title: "Mentais",
+    title: "Mental",
     keys: [
-      ["aggression", "Agressividade"], ["anticipation", "Antecipação"], ["bravery", "Bravura"],
-      ["composure", "Compostura"], ["concentration", "Concentração"], ["decisions", "Decisões"],
-      ["determination", "Determinação"], ["flair", "Improviso"], ["leadership", "Liderança"],
-      ["offTheBall", "Sem a bola"], ["positioning", "Posicionamento"], ["teamwork", "Trabalho em equipe"],
-      ["vision", "Visão"], ["workRate", "Dedicação"],
+      ["aggression", "Aggression"], ["anticipation", "Anticipation"], ["bravery", "Bravery"],
+      ["composure", "Composure"], ["concentration", "Concentration"], ["decisions", "Decisions"],
+      ["determination", "Determination"], ["flair", "Flair"], ["leadership", "Leadership"],
+      ["offTheBall", "Off The Ball"], ["positioning", "Positioning"], ["teamwork", "Teamwork"],
+      ["vision", "Vision"], ["workRate", "Work Rate"],
     ],
   },
   {
-    title: "Físicos",
+    title: "Physical",
     keys: [
-      ["acceleration", "Aceleração"], ["agility", "Agilidade"], ["balance", "Equilíbrio"],
-      ["jumpingReach", "Impulsão"], ["naturalFitness", "Condição natural"], ["pace", "Velocidade"],
-      ["stamina", "Resistência"], ["strength", "Força"],
+      ["acceleration", "Acceleration"], ["agility", "Agility"], ["balance", "Balance"],
+      ["jumpingReach", "Jumping Reach"], ["naturalFitness", "Natural Fitness"], ["pace", "Pace"],
+      ["stamina", "Stamina"], ["strength", "Strength"],
     ],
   },
   {
-    title: "Goleiro",
+    title: "Goalkeeping",
     keys: [
-      ["aerialReach", "Alcance aéreo"], ["commandOfArea", "Comando da área"], ["communication", "Comunicação"],
-      ["eccentricity", "Excentricidade"], ["handling", "Manuseio"], ["kicking", "Chute"],
-      ["oneOnOnes", "Um contra um"], ["punching", "Socos"], ["reflexes", "Reflexos"],
-      ["rushingOut", "Saídas do gol"], ["throwing", "Lançamentos"],
+      ["aerialReach", "Aerial Reach"], ["commandOfArea", "Command Of Area"], ["communication", "Communication"],
+      ["eccentricity", "Eccentricity"], ["handling", "Handling"], ["kicking", "Kicking"],
+      ["oneOnOnes", "One On Ones"], ["punching", "Punching"], ["reflexes", "Reflexes"],
+      ["rushingOut", "Rushing Out"], ["throwing", "Throwing"],
     ],
   },
 ];

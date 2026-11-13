@@ -25,14 +25,14 @@ export default function Sidebar({ user, save, view, onView, onLogout }: {
           />
         </>
       ) : (
-        <p className="mute" style={{ fontSize: ".8rem", padding: ".8rem .5rem" }}>Abra um save na Home para ver planejamento, importação, transferências e táticas.</p>
+        <p className="mute" style={{ fontSize: ".8rem", padding: ".8rem .5rem" }}>Open a save from Home to see planning, import, transfers and tactics.</p>
       )}
       <div className="sub-foot">
         <div className="sub-sep" />
         <div className="userchip">
           <span className="avatar">{user[0]?.toUpperCase()}</span>
           <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{user}</span>
-          <button className="btn ghost sm" onClick={onLogout}>Sair</button>
+          <button className="btn ghost sm" onClick={onLogout}>Log out</button>
         </div>
       </div>
     </aside>

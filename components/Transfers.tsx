@@ -22,7 +22,7 @@ function Structured({ data, name }: { data: any; name: (id: string) => string })
               <div className="row"><b>{n.position}</b><span className={"tag " + n.priority}>prioridade {n.priority}</span></div>
               <p style={{ margin: ".3rem 0" }}>{n.reason}</p>
               <div className="kv">
-                <span className="mute">Função</span><span>{n.idealProfile?.role}</span>
+                <span className="mute">Role</span><span>{n.idealProfile?.role}</span>
                 <span className="mute">Atributos-chave</span><span>{n.idealProfile?.keyAttributes?.join(", ")}</span>
                 <span className="mute">Idade</span><span>{n.idealProfile?.ageRange}</span>
                 {n.idealProfile?.notes && <><span className="mute">Notas</span><span>{n.idealProfile.notes}</span></>}
