@@ -82,7 +82,9 @@ async function callGemini(system: string, opts: { text: string; images?: string[
     ...(opts.images ?? []).map((data) => ({ inlineData: { mimeType: "image/jpeg", data } })),
     { text: opts.text },
   ];
-  const res = await fetch(
+  let res!: Response;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
     {
       method: "POST",
@@ -96,11 +98,15 @@ async function callGemini(system: string, opts: { text: string; images?: string[
         generationConfig: { responseMimeType: "application/json", maxOutputTokens: opts.maxTokens ?? 4000 },
       }),
     }
-  );
+    );
+    // alta demanda / erro temporário do Google: espera e tenta de novo
+    if (res.status !== 503 && res.status !== 500 && res.status !== 502) break;
+    await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+  }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const msg = data?.error?.message || `Erro ${res.status} na API do Gemini`;
-    throw new Error(res.status === 429 ? "Limite gratuito do Gemini atingido. Espere um pouco e tente de novo." : msg);
+    throw new Error(res.status === 503 ? "O Gemini está sobrecarregado agora (erro do Google, não do site). Tente de novo em um minuto." : res.status === 429 ? "Limite gratuito do Gemini atingido. Espere um pouco e tente de novo." : msg);
   }
   const out = (data?.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("");
   if (!out) throw new Error("O Gemini não devolveu conteúdo (pode ter sido bloqueado). Tente de novo.");
