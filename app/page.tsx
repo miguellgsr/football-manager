@@ -21,19 +21,6 @@ export default function Page() {
     (s ? start(s) : Promise.resolve()).finally(() => setReady(true));
   }, []);
 
-  // brilho especular do liquid glass acompanha o ponteiro
-  useEffect(() => {
-    const move = (e: PointerEvent) => {
-      const el = (e.target as HTMLElement | null)?.closest?.(".card, .sidebar, .modal, .auth-card") as HTMLElement | null;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      el.style.setProperty("--mx", ((e.clientX - r.left) / r.width) * 100 + "%");
-      el.style.setProperty("--my", ((e.clientY - r.top) / r.height) * 100 + "%");
-    };
-    window.addEventListener("pointermove", move);
-    return () => window.removeEventListener("pointermove", move);
-  }, []);
-
   if (!ready) return null;
   if (!session) return <AuthGate onDone={start} />;
 

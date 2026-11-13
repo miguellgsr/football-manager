@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { createSave, deleteSave, listSaves, loadState, renameSave } from "@/lib/saves";
 import { initialState, SaveMeta } from "@/lib/types";
-import { applyTheme } from "@/lib/theme";
 import ClubPicker, { ClubChoice } from "./ClubPicker";
 
 export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
@@ -16,7 +15,6 @@ export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
 
   const reload = () => setSaves(listSaves().sort((a, b) => b.updatedAt - a.updatedAt));
   useEffect(reload, []);
-  useEffect(() => { applyTheme(choice.colors); return () => applyTheme(null); }, [choice.colors]);
 
   const create = () => {
     if (!name.trim()) return;
@@ -98,7 +96,7 @@ export default function Home({ onOpen }: { onOpen: (id: string) => void }) {
         <h2>Novo save</h2>
         <div className="scroll">
           <div className="field"><label>Nome do save</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Carreira Flamengo 2027" onKeyDown={(e) => e.key === "Enter" && create()} /></div>
-          <h3>Clube do save (define as cores da interface)</h3>
+          <h3>Clube do save (define as cores da página do clube)</h3>
           <ClubPicker value={choice} onChange={(c) => { setChoice(c); if (!name.trim() && c.club && c.league) setName(`Carreira ${c.club}`); }} />
         </div>
         <div className="row" style={{ marginTop: ".6rem" }}>
