@@ -20,8 +20,8 @@ export interface FormationEval {
 }
 
 /** Monta o melhor 11 possível para a formação (guloso, preenchendo primeiro as posições mais escassas). */
-export function evaluateFormation(players: Player[], name: string): FormationEval {
-  const slots = FORMATIONS[name];
+export function evaluateFormation(players: Player[], name: string, slotsOverride?: { pos: Pos }[]): FormationEval {
+  const slots = slotsOverride ?? FORMATIONS[name];
   const used = new Set<string>();
   const assigns: Assign[] = new Array(slots.length);
   const order = slots

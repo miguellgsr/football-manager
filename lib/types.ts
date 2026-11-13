@@ -51,7 +51,7 @@ export interface SaveMeta {
 
 export interface Board {
   slots: Record<string, { x: number; y: number; pos: Pos }>;
-  roles: Record<string, { role: string; duty: string }>;
+  roles: Record<string, { ip?: string; oop?: string }>; // função com a bola / sem a bola
 }
 
 export interface State {

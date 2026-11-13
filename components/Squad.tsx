@@ -3,7 +3,8 @@ import { Select } from "./Dropdown";
 import { useMemo, useRef, useState } from "react";
 import { effectiveSlots } from "@/lib/board";
 import { cellXY, COLS, ROWS, snapCell, posFromCell } from "@/lib/grid";
-import { FM_ROLES, DUTY_SHORT, findRole, POS_LABEL } from "@/lib/fmroles";
+import { rolesFor, POS_LABEL } from "@/lib/fmroles";
+import { detectFormation } from "@/lib/board";
 import { FORMATIONS, NEIGHBORS } from "@/lib/formations";
 import { bestOverall, bestRoleFor } from "@/lib/roles";
 import { Player, Pos, uid } from "@/lib/types";
@@ -23,29 +24,32 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
   const [picking, setPicking] = useState<number | null>(null);
   const squad = state.players.filter((p) => p.status === "squad");
   const slots = effectiveSlots(state);
+  const det = detectFormation(state);
   const pitchRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ i: number; sx: number; sy: number; moved: boolean; el: HTMLElement; raf: number } | null>(null);
 
   const patchSlot = (i: number, patch: { x?: number; y?: number; pos?: Pos }) =>
     setState((st) => {
-      const cur = effectiveSlots(st)[i];
+      const all = effectiveSlots(st);
+      const cur = all[i];
       const b = st.board ?? { slots: {}, roles: {} };
       const pos = patch.pos ?? cur.pos;
       const roles = { ...b.roles };
       const r = roles[String(i)];
-      if (r && !findRole(pos, r.role)) delete roles[String(i)];
+      if (r) {
+        // ao mudar de posição, mantém só as funções que existem na nova posição
+        const rs = rolesFor(pos, pos === "CB" && cur.wide);
+        const keep = { ip: r.ip && rs.ip.includes(r.ip) ? r.ip : undefined, oop: r.oop && rs.oop.includes(r.oop) ? r.oop : undefined };
+        if (keep.ip || keep.oop) roles[String(i)] = keep; else delete roles[String(i)];
+      }
       return { ...st, board: { slots: { ...b.slots, [String(i)]: { x: patch.x ?? cur.x, y: patch.y ?? cur.y, pos } }, roles } };
     });
-  const setRole = (i: number, role?: string, duty?: string) =>
+  const setRole = (i: number, which: "ip" | "oop", name?: string) =>
     setState((st) => {
       const b = st.board ?? { slots: {}, roles: {} };
       const roles = { ...b.roles };
-      if (!role) delete roles[String(i)];
-      else {
-        const pos = effectiveSlots(st)[i].pos;
-        const fr = findRole(pos, role);
-        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Support" };
-      }
+      const cur = { ...(roles[String(i)] ?? {}), [which]: name || undefined };
+      if (cur.ip || cur.oop) roles[String(i)] = cur; else delete roles[String(i)];
       return { ...st, board: { slots: b.slots, roles } };
     });
   const onDown = (e: React.PointerEvent, i: number) => {
@@ -131,7 +135,7 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
   }, [state.players]); // eslint-disable-line
 
   const autoPick = () => {
-    const ev = evaluateFormation(squad, state.formation);
+    const ev = evaluateFormation(squad, state.formation, slots);
     const lineup: Record<string, string> = {};
     ev.assigns.forEach((a) => { if (a.playerId) lineup[String(a.slot)] = a.playerId; });
     setState((s) => ({ ...s, lineup }));
@@ -149,7 +153,8 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
               <span className="mute" style={{ fontSize: ".78rem" }}>Titulares definidos: {startersCount}/11 · arraste para mover · clique para jogador e função</span>
             </div>
             <div className="row">
-              <Select width={110} value={state.formation} onChange={(v) => setState((s) => ({ ...s, formation: v, lineup: {}, board: undefined }))} options={Object.keys(FORMATIONS).map((f) => ({ value: f, label: f }))} />
+              <Select width={200} value={det.known ? det.name : "custom"} onChange={(v) => { if (v !== "custom") setState((s) => ({ ...s, formation: v, lineup: {}, board: undefined })); }}
+                options={[...(det.known ? [] : [{ value: "custom", label: det.name }]), ...Object.keys(FORMATIONS).map((f) => ({ value: f, label: f }))]} />
               <button className="btn sm" disabled={squad.length === 0} onClick={autoPick}>Melhor 11</button>
               <button className="btn ghost sm" onClick={() => setState((s) => ({ ...s, lineup: {} }))}>Limpar</button>
               <button className="btn ghost sm" title="Voltar posições e funções da formação" onClick={() => setState((s) => ({ ...s, board: undefined }))}>Resetar campo</button>
@@ -178,8 +183,9 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
                     title={fit ? `Encaixe ${fit.score ?? "?"}${fit.natural ? "" : fit.cover ? " · posição próxima" : " · fora de posição"}` : "Escolher jogador"}>
                     <Shirt n={i + 1} />
                     <div className="card-fm">
-                      <div className={"role " + roleClass(sl.pos)}>{sl.pos}{sl.role ? " · " + (findRole(sl.pos, sl.role)?.name ?? "") + (sl.duty ? " (" + (DUTY_SHORT[sl.duty] ?? sl.duty) + ")" : "") : ""}</div>
+                      <div className={"role " + roleClass(sl.pos)}>{sl.pos}</div>
                       <Stars score={fit?.score} />
+                      {(sl.ip || sl.oop) && <div className="rl" title={`With ball: ${sl.ip ?? "—"}\nWithout ball: ${sl.oop ?? "—"}`}>{sl.ip ?? "—"}</div>}
                       <div className={"pn" + (pl ? (fit && !fit.natural && !fit.cover ? " warn" : "") : " empty")}>{pl ? pl.name.split(" ").slice(-1)[0] : "—"}</div>
                     </div>
                   </div>
@@ -230,12 +236,18 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
             </div>
             <div className="row" style={{ gap: ".5rem", margin: ".4rem 0 .6rem", flexWrap: "wrap" }}>
               <Select width={230} value={slots[picking].pos} onChange={(v) => patchSlot(picking, { pos: v as Pos })} options={POS_ORDER.map((x) => ({ value: x, label: POS_LABEL[x] }))} />
-              <Select width={240} value={slots[picking].role ?? ""} onChange={(v) => setRole(picking, v || undefined)}
-                options={[{ value: "", label: "No role" }, ...FM_ROLES[slots[picking].pos].map((r) => ({ value: r.id, label: r.name }))]} />
-              {slots[picking].role && (
-                <Select width={120} value={slots[picking].duty ?? ""} onChange={(v) => setRole(picking, slots[picking].role, v)}
-                  options={(findRole(slots[picking].pos, slots[picking].role)?.duties ?? []).map((d) => ({ value: d, label: d }))} />
-              )}
+            </div>
+            <div className="row" style={{ gap: ".5rem", margin: "0 0 .6rem", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div className="mute" style={{ fontSize: ".75rem" }}>In possession</div>
+                <Select width={250} value={slots[picking].ip ?? ""} onChange={(v) => setRole(picking, "ip", v)}
+                  options={[{ value: "", label: "No role" }, ...rolesFor(slots[picking].pos, slots[picking].wide).ip.map((r) => ({ value: r, label: r }))]} />
+              </div>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div className="mute" style={{ fontSize: ".75rem" }}>Out of possession</div>
+                <Select width={250} value={slots[picking].oop ?? ""} onChange={(v) => setRole(picking, "oop", v)}
+                  options={[{ value: "", label: "No role" }, ...rolesFor(slots[picking].pos, slots[picking].wide).oop.map((r) => ({ value: r, label: r }))]} />
+              </div>
             </div>
             <table>
               <tbody>

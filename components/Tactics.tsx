@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import { callApi, Props } from "@/lib/client";
 import { compactPlayer } from "@/lib/import";
 import { evaluateAll, summarizeEval } from "@/lib/analysis";
-import { effectiveSlots } from "@/lib/board";
-import { FM_ROLES, findRole, roleFit } from "@/lib/fmroles";
+import { detectFormation, effectiveSlots } from "@/lib/board";
+import { rolesFor, roleFit } from "@/lib/fmroles";
 import { Select } from "./Dropdown";
 import { scoreClass } from "./Squad";
 
@@ -13,7 +13,7 @@ interface Result {
   best?: string;
   formation: string; mentality: string; reasoning: string;
   inPossession: string[]; outOfPossession: string[]; transition: string[];
-  lineup: { slot: string; playerId: string; role: string; duty: string; why: string }[];
+  lineup: { slot: string; playerId: string; inPossession: string; outOfPossession: string; why: string }[];
   weaknesses: { issue: string; fix: string }[];
   setPieces: string; alternativePlan: string;
 }
@@ -27,20 +27,18 @@ export default function Tactics({ state, setState, accessCode }: Props) {
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
   const slots = effectiveSlots(state);
   const lineup = Object.entries(state.lineup).map(([i, id]) => ({ slot: slots[+i]?.pos, playerId: id }));
+  const det = detectFormation(state);
   const myBoard = slots.map((sl, i) => ({
-    slot: i + 1, pos: sl.pos, x: sl.x, y: sl.y,
-    role: sl.role ? findRole(sl.pos, sl.role)?.name : undefined, duty: sl.duty,
+    slot: i + 1, pos: sl.pos, x: sl.x, y: sl.y, wideCentreBack: sl.wide || undefined,
+    inPossession: sl.ip, outOfPossession: sl.oop,
     playerId: state.lineup[String(i)],
   }));
-  const setRole = (i: number, role?: string, duty?: string) =>
+  const setRole = (i: number, which: "ip" | "oop", name?: string) =>
     setState((st) => {
       const b = st.board ?? { slots: {}, roles: {} };
       const roles = { ...b.roles };
-      if (!role) delete roles[String(i)];
-      else {
-        const fr = findRole(effectiveSlots(st)[i].pos, role);
-        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Support" };
-      }
+      const cur = { ...(roles[String(i)] ?? {}), [which]: name || undefined };
+      if (cur.ip || cur.oop) roles[String(i)] = cur; else delete roles[String(i)];
       return { ...st, board: { slots: b.slots, roles } };
     });
   const evals = useMemo(() => evaluateAll(squad), [state.players]); // eslint-disable-line
@@ -50,7 +48,7 @@ export default function Tactics({ state, setState, accessCode }: Props) {
     setBusy(true); setErr(""); setRes(null);
     try {
       setRes(await callApi<Result>("/api/tactics", {
-        club: state.club, formation: state.formation, currentLineup: lineup, customSetup: myBoard,
+        club: state.club, formation: det.name, currentLineup: lineup, customSetup: myBoard,
         squad: squad.map(compactPlayer),
         localFit: evals.slice(0, 5).map((e) => summarizeEval(e, squad)),
         extraInstructions: extra,
@@ -79,19 +77,19 @@ export default function Tactics({ state, setState, accessCode }: Props) {
       </div>
 
       <div className="card fillcol" style={{ flex: 1 }}>
-        <h2>Seu campo tático ({state.formation})</h2>
-        <p className="mute" style={{ fontSize: ".85rem" }}>Defina a função e o dever de cada posição. As posições se movem arrastando os jogadores no campo da aba Time titular; a IA analisa exatamente este desenho.</p>
+        <h2>Seu campo tático ({det.name})</h2>
+        <p className="mute" style={{ fontSize: ".85rem" }}>Defina a função com e sem a bola de cada posição. As posições se movem arrastando os jogadores no campo da aba Time titular; a IA analisa exatamente este desenho.</p>
         <div className="scroll"><table>
-          <thead><tr><th>#</th><th>Pos</th><th>Jogador</th><th>Role</th><th>Duty</th><th>Fit</th></tr></thead>
+          <thead><tr><th>#</th><th>Pos</th><th>Jogador</th><th>In possession</th><th>Out of possession</th><th>Fit</th></tr></thead>
           <tbody>
             {slots.map((sl, i) => {
               const pl = state.players.find((p) => p.id === state.lineup[String(i)]);
-              const fit = pl ? roleFit(pl, sl.pos, sl.role) : null;
+              const fit = pl ? roleFit(pl, sl.pos, sl.ip, sl.oop) : null;
               return (
                 <tr key={i}>
                   <td>{i + 1}</td><td>{sl.pos}</td><td>{pl ? pl.name : <span className="mute">—</span>}</td>
-                  <td><Select width={240} value={sl.role ?? ""} onChange={(v) => setRole(i, v || undefined)} options={[{ value: "", label: "No role" }, ...FM_ROLES[sl.pos].map((r) => ({ value: r.id, label: r.name }))]} /></td>
-                  <td>{sl.role ? <Select width={110} value={sl.duty ?? ""} onChange={(v) => setRole(i, sl.role, v)} options={(findRole(sl.pos, sl.role)?.duties ?? []).map((d) => ({ value: d, label: d }))} /> : <span className="mute">—</span>}</td>
+                  <td><Select width={250} value={sl.ip ?? ""} onChange={(v) => setRole(i, "ip", v)} options={[{ value: "", label: "No role" }, ...rolesFor(sl.pos, sl.wide).ip.map((r) => ({ value: r, label: r }))]} /></td>
+                  <td><Select width={250} value={sl.oop ?? ""} onChange={(v) => setRole(i, "oop", v)} options={[{ value: "", label: "No role" }, ...rolesFor(sl.pos, sl.wide).oop.map((r) => ({ value: r, label: r }))]} /></td>
                   <td>{fit != null ? <span className={"score " + scoreClass(fit)}>{fit}</span> : <span className="mute">—</span>}</td>
                 </tr>
               );
@@ -152,8 +150,8 @@ export default function Tactics({ state, setState, accessCode }: Props) {
           <div className="card">
             <h2>Funções por jogador</h2>
             <table>
-              <thead><tr><th>Posição</th><th>Jogador</th><th>Role</th><th>Duty</th><th>Why</th></tr></thead>
-              <tbody>{res.lineup?.map((l, i) => <tr key={i}><td>{l.slot}</td><td>{name(l.playerId)}</td><td>{l.role}</td><td>{l.duty}</td><td>{l.why}</td></tr>)}</tbody>
+              <thead><tr><th>Posição</th><th>Jogador</th><th>In possession</th><th>Out of possession</th><th>Why</th></tr></thead>
+              <tbody>{res.lineup?.map((l, i) => <tr key={i}><td>{l.slot}</td><td>{name(l.playerId)}</td><td>{l.inPossession}</td><td>{l.outOfPossession}</td><td>{l.why}</td></tr>)}</tbody>
             </table>
           </div>
 

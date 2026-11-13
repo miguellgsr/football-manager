@@ -1,3 +1,4 @@
+import { COL_X, ROW_Y } from "./grid";
 import type { Pos } from "./types";
 
 export interface Slot {
@@ -54,6 +55,27 @@ export const FORMATIONS: Record<string, Slot[]> = {
     { pos: "ST", x: 38, y: 20 }, { pos: "ST", x: 62, y: 20 },
   ],
 };
+
+const g = (pos: Pos, c: number, r: number): Slot => ({ pos, x: COL_X[c], y: ROW_Y[r] });
+const back4 = [g("LB", 0, 4), g("CB", 1, 4), g("CB", 3, 4), g("RB", 4, 4)];
+const back3 = [g("CB", 1, 4), g("CB", 2, 4), g("CB", 3, 4)];
+const back5 = [g("LWB", 0, 3), g("CB", 1, 4), g("CB", 2, 4), g("CB", 3, 4), g("RWB", 4, 3)];
+
+Object.assign(FORMATIONS, {
+  "4-1-2-1-2": [gk, ...back4, g("DM", 2, 3), g("CM", 1, 2), g("CM", 3, 2), g("AM", 2, 1), g("ST", 1, 0), g("ST", 3, 0)],
+  "4-2-2-2": [gk, ...back4, g("DM", 1, 3), g("DM", 3, 3), g("AM", 1, 1), g("AM", 3, 1), g("ST", 1, 0), g("ST", 3, 0)],
+  "4-3-1-2": [gk, ...back4, g("CM", 1, 2), g("CM", 2, 2), g("CM", 3, 2), g("AM", 2, 1), g("ST", 1, 0), g("ST", 3, 0)],
+  "4-3-2-1": [gk, ...back4, g("CM", 1, 2), g("CM", 2, 2), g("CM", 3, 2), g("AM", 1, 1), g("AM", 3, 1), g("ST", 2, 0)],
+  "4-4-1-1": [gk, ...back4, g("LM", 0, 2), g("CM", 1, 2), g("CM", 3, 2), g("RM", 4, 2), g("AM", 2, 1), g("ST", 2, 0)],
+  "4-5-1": [gk, ...back4, g("LM", 0, 2), g("CM", 1, 2), g("CM", 2, 2), g("CM", 3, 2), g("RM", 4, 2), g("ST", 2, 0)],
+  "4-3-3 Flat": [gk, ...back4, g("CM", 1, 2), g("CM", 2, 2), g("CM", 3, 2), g("LW", 0, 1), g("ST", 2, 0), g("RW", 4, 1)],
+  "3-4-1-2": [gk, ...back3, g("LM", 0, 2), g("CM", 1, 2), g("CM", 3, 2), g("RM", 4, 2), g("AM", 2, 1), g("ST", 1, 0), g("ST", 3, 0)],
+  "3-4-2-1": [gk, ...back3, g("LM", 0, 2), g("CM", 1, 2), g("CM", 3, 2), g("RM", 4, 2), g("AM", 1, 1), g("AM", 3, 1), g("ST", 2, 0)],
+  "3-1-4-2": [gk, ...back3, g("DM", 2, 3), g("LM", 0, 2), g("CM", 1, 2), g("CM", 3, 2), g("RM", 4, 2), g("ST", 1, 0), g("ST", 3, 0)],
+  "3-5-1-1": [gk, ...back3, g("LWB", 0, 3), g("RWB", 4, 3), g("CM", 1, 2), g("CM", 2, 2), g("CM", 3, 2), g("AM", 2, 1), g("ST", 2, 0)],
+  "5-4-1": [gk, ...back5, g("LM", 0, 2), g("CM", 1, 2), g("CM", 3, 2), g("RM", 4, 2), g("ST", 2, 0)],
+  "5-2-3": [gk, ...back5, g("DM", 1, 3), g("DM", 3, 3), g("LW", 1, 1), g("ST", 2, 0), g("RW", 3, 1)],
+});
 
 /** Posições "vizinhas" que um jogador consegue cobrir com perda pequena. */
 export const NEIGHBORS: Record<Pos, Pos[]> = {
