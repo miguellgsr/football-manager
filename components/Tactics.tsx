@@ -3,7 +3,9 @@ import { useMemo, useState } from "react";
 import { callApi, Props } from "@/lib/client";
 import { compactPlayer } from "@/lib/import";
 import { evaluateAll, summarizeEval } from "@/lib/analysis";
-import { FORMATIONS } from "@/lib/formations";
+import { effectiveSlots } from "@/lib/board";
+import { FM_ROLES, findRole, roleFit } from "@/lib/fmroles";
+import { Select } from "./Dropdown";
 import { scoreClass } from "./Squad";
 
 interface Result {
@@ -16,15 +18,31 @@ interface Result {
   setPieces: string; alternativePlan: string;
 }
 
-export default function Tactics({ state, accessCode }: Props) {
+export default function Tactics({ state, setState, accessCode }: Props) {
   const [extra, setExtra] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [res, setRes] = useState<Result | null>(null);
   const squad = state.players.filter((p) => p.status === "squad");
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
-  const slots = FORMATIONS[state.formation] ?? [];
+  const slots = effectiveSlots(state);
   const lineup = Object.entries(state.lineup).map(([i, id]) => ({ slot: slots[+i]?.pos, playerId: id }));
+  const myBoard = slots.map((sl, i) => ({
+    slot: i + 1, pos: sl.pos, x: sl.x, y: sl.y,
+    role: sl.role ? findRole(sl.pos, sl.role)?.name : undefined, duty: sl.duty,
+    playerId: state.lineup[String(i)],
+  }));
+  const setRole = (i: number, role?: string, duty?: string) =>
+    setState((st) => {
+      const b = st.board ?? { slots: {}, roles: {} };
+      const roles = { ...b.roles };
+      if (!role) delete roles[String(i)];
+      else {
+        const fr = findRole(effectiveSlots(st)[i].pos, role);
+        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Apoiar" };
+      }
+      return { ...st, board: { slots: b.slots, roles } };
+    });
   const evals = useMemo(() => evaluateAll(squad), [state.players]); // eslint-disable-line
   const withAttrs = squad.filter((p) => Object.keys(p.attrs).length >= 8).length;
 
@@ -32,7 +50,7 @@ export default function Tactics({ state, accessCode }: Props) {
     setBusy(true); setErr(""); setRes(null);
     try {
       setRes(await callApi<Result>("/api/tactics", {
-        club: state.club, formation: state.formation, currentLineup: lineup,
+        club: state.club, formation: state.formation, currentLineup: lineup, customSetup: myBoard,
         squad: squad.map(compactPlayer),
         localFit: evals.slice(0, 5).map((e) => summarizeEval(e, squad)),
         extraInstructions: extra,
@@ -58,6 +76,28 @@ export default function Tactics({ state, accessCode }: Props) {
         <button className="btn" disabled={busy || squad.length < 11} onClick={run}>{busy ? "Analisando o elenco…" : "Analisar tática e estilo ideais"}</button>
         {squad.length < 11 && <span className="mute"> Importe pelo menos 11 jogadores.</span>}
         {err && <p className="err">{err}</p>}
+      </div>
+
+      <div className="card fillcol" style={{ flex: 1 }}>
+        <h2>Seu campo tático ({state.formation})</h2>
+        <p className="mute" style={{ fontSize: ".85rem" }}>Defina a função e o dever de cada posição. As posições se movem arrastando os jogadores no campo da aba Time titular; a IA analisa exatamente este desenho.</p>
+        <div className="scroll"><table>
+          <thead><tr><th>#</th><th>Pos</th><th>Jogador</th><th>Função</th><th>Dever</th><th>Encaixe</th></tr></thead>
+          <tbody>
+            {slots.map((sl, i) => {
+              const pl = state.players.find((p) => p.id === state.lineup[String(i)]);
+              const fit = pl ? roleFit(pl, sl.pos, sl.role) : null;
+              return (
+                <tr key={i}>
+                  <td>{i + 1}</td><td>{sl.pos}</td><td>{pl ? pl.name : <span className="mute">—</span>}</td>
+                  <td><Select width={190} value={sl.role ?? ""} onChange={(v) => setRole(i, v || undefined)} options={[{ value: "", label: "Sem função" }, ...FM_ROLES[sl.pos].map((r) => ({ value: r.id, label: r.name }))]} /></td>
+                  <td>{sl.role ? <Select width={110} value={sl.duty ?? ""} onChange={(v) => setRole(i, sl.role, v)} options={(findRole(sl.pos, sl.role)?.duties ?? []).map((d) => ({ value: d, label: d }))} /> : <span className="mute">—</span>}</td>
+                  <td>{fit != null ? <span className={"score " + scoreClass(fit)}>{fit}</span> : <span className="mute">—</span>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table></div>
       </div>
 
       {squad.length >= 11 && (

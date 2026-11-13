@@ -1,6 +1,8 @@
 "use client";
 import { Select } from "./Dropdown";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { effectiveSlots } from "@/lib/board";
+import { FM_ROLES, DUTY_SHORT, findRole, posFromXY, roleFit } from "@/lib/fmroles";
 import { FORMATIONS, NEIGHBORS } from "@/lib/formations";
 import { bestOverall, bestRoleFor } from "@/lib/roles";
 import { Player, Pos, uid } from "@/lib/types";
@@ -19,7 +21,50 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
   const [editing, setEditing] = useState<Player | null>(null);
   const [picking, setPicking] = useState<number | null>(null);
   const squad = state.players.filter((p) => p.status === "squad");
-  const slots = FORMATIONS[state.formation] ?? FORMATIONS["4-3-3"];
+  const slots = effectiveSlots(state);
+  const pitchRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ i: number; sx: number; sy: number; moved: boolean } | null>(null);
+
+  const patchSlot = (i: number, patch: { x?: number; y?: number; pos?: Pos }) =>
+    setState((st) => {
+      const cur = effectiveSlots(st)[i];
+      const b = st.board ?? { slots: {}, roles: {} };
+      const pos = patch.pos ?? cur.pos;
+      const roles = { ...b.roles };
+      const r = roles[String(i)];
+      if (r && !findRole(pos, r.role)) delete roles[String(i)];
+      return { ...st, board: { slots: { ...b.slots, [String(i)]: { x: patch.x ?? cur.x, y: patch.y ?? cur.y, pos } }, roles } };
+    });
+  const setRole = (i: number, role?: string, duty?: string) =>
+    setState((st) => {
+      const b = st.board ?? { slots: {}, roles: {} };
+      const roles = { ...b.roles };
+      if (!role) delete roles[String(i)];
+      else {
+        const pos = effectiveSlots(st)[i].pos;
+        const fr = findRole(pos, role);
+        roles[String(i)] = { role, duty: duty && fr?.duties.includes(duty) ? duty : fr?.duties[0] ?? "Apoiar" };
+      }
+      return { ...st, board: { slots: b.slots, roles } };
+    });
+  const onDown = (e: React.PointerEvent, i: number) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    drag.current = { i, sx: e.clientX, sy: e.clientY, moved: false };
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current, el = pitchRef.current;
+    if (!d || !el) return;
+    if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 5) return;
+    d.moved = true;
+    const r = el.getBoundingClientRect();
+    const x = Math.max(4, Math.min(96, ((e.clientX - r.left) / r.width) * 100));
+    const y = Math.max(6, Math.min(94, ((e.clientY - r.top) / r.height) * 100));
+    patchSlot(d.i, { x: Math.round(x), y: Math.round(y), pos: posFromXY(x, y, slots[d.i].pos) });
+  };
+  const onUp = (i: number) => {
+    const d = drag.current; drag.current = null;
+    if (d && !d.moved) setPicking(i);
+  };
 
   const save = (p: Player) =>
     setState((s) => ({
@@ -73,27 +118,29 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
           <div className="row" style={{ justifyContent: "space-between", marginBottom: ".5rem" }}>
             <div>
               <h2 style={{ margin: 0 }}>Time titular</h2>
-              <span className="mute" style={{ fontSize: ".78rem" }}>Titulares definidos: {startersCount}/11 · clique num jogador para trocar</span>
+              <span className="mute" style={{ fontSize: ".78rem" }}>Titulares definidos: {startersCount}/11 · arraste para mover · clique para jogador e função</span>
             </div>
             <div className="row">
-              <Select width={110} value={state.formation} onChange={(v) => setState((s) => ({ ...s, formation: v, lineup: {} }))} options={Object.keys(FORMATIONS).map((f) => ({ value: f, label: f }))} />
+              <Select width={110} value={state.formation} onChange={(v) => setState((s) => ({ ...s, formation: v, lineup: {}, board: undefined }))} options={Object.keys(FORMATIONS).map((f) => ({ value: f, label: f }))} />
               <button className="btn sm" disabled={squad.length === 0} onClick={autoPick}>Melhor 11</button>
               <button className="btn ghost sm" onClick={() => setState((s) => ({ ...s, lineup: {} }))}>Limpar</button>
+              <button className="btn ghost sm" title="Voltar posições e funções da formação" onClick={() => setState((s) => ({ ...s, board: undefined }))}>Resetar campo</button>
             </div>
           </div>
           <div className="pitchwrap">
-            <div className="pitch">
+            <div className="pitch" ref={pitchRef}>
               <PitchLines />
               {slots.map((sl, i) => {
                 const pid = state.lineup[String(i)];
                 const pl = pid ? state.players.find((p) => p.id === pid) : undefined;
                 const fit = pl ? fitFor(pl, sl.pos) : null;
                 return (
-                  <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%" }} onClick={() => setPicking(i)}
+                  <div key={i} className="fmc" style={{ left: sl.x + "%", top: sl.y + "%", touchAction: "none", cursor: "grab" }}
+                    onPointerDown={(e) => onDown(e, i)} onPointerMove={onMove} onPointerUp={() => onUp(i)}
                     title={fit ? `Encaixe ${fit.score ?? "?"}${fit.natural ? "" : fit.cover ? " · posição próxima" : " · fora de posição"}` : "Escolher jogador"}>
                     <Shirt n={i + 1} />
                     <div className="card-fm">
-                      <div className={"role " + roleClass(sl.pos)}>{sl.pos}</div>
+                      <div className={"role " + roleClass(sl.pos)}>{sl.pos}{sl.role ? " · " + (findRole(sl.pos, sl.role)?.name ?? "") + (sl.duty ? " (" + (DUTY_SHORT[sl.duty] ?? sl.duty) + ")" : "") : ""}</div>
                       <Stars score={fit?.score} />
                       <div className={"pn" + (pl ? (fit && !fit.natural && !fit.cover ? " warn" : "") : " empty")}>{pl ? pl.name.split(" ").slice(-1)[0] : "—"}</div>
                     </div>
@@ -142,6 +189,15 @@ export default function Squad({ state, setState, goImport }: Props & { goImport:
             <div className="row" style={{ justifyContent: "space-between" }}>
               <h2>Escolher para {slots[picking].pos}</h2>
               <button className="btn ghost sm" onClick={() => setPicking(null)}>Fechar</button>
+            </div>
+            <div className="row" style={{ gap: ".5rem", margin: ".4rem 0 .6rem", flexWrap: "wrap" }}>
+              <Select width={100} value={slots[picking].pos} onChange={(v) => patchSlot(picking, { pos: v as Pos })} options={POS_ORDER.map((x) => ({ value: x, label: x }))} />
+              <Select width={210} value={slots[picking].role ?? ""} onChange={(v) => setRole(picking, v || undefined)}
+                options={[{ value: "", label: "Sem função" }, ...FM_ROLES[slots[picking].pos].map((r) => ({ value: r.id, label: r.name }))]} />
+              {slots[picking].role && (
+                <Select width={120} value={slots[picking].duty ?? ""} onChange={(v) => setRole(picking, slots[picking].role, v)}
+                  options={(findRole(slots[picking].pos, slots[picking].role)?.duties ?? []).map((d) => ({ value: d, label: d }))} />
+              )}
             </div>
             <table>
               <tbody>

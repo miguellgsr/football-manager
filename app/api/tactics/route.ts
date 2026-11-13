@@ -24,6 +24,7 @@ Formato de saída (JSON):
  "setPieces": string,
  "alternativePlan": string
 }
+Se vier "customSetup", o usuário montou um campo tático próprio: cada item tem slot, posição (pos), coordenadas x (0 esquerda–100 direita) e y (0 ataque–100 gol), função/dever escolhidos e o jogador. Avalie ESSE desenho (compressão de linhas, largura, buracos entre setores, equilíbrio defensivo, funções compatíveis entre si), diga o que funciona e o que melhorar, e no "lineup" mantenha as posições dele sugerindo ajustes de função/dever (ou jogador) em vez de trocar a formação, a menos que seja claramente inviável.
 Só use "playerId" de jogadores existentes no elenco enviado.`;
 
 export async function POST(req: Request) {

@@ -49,11 +49,17 @@ export interface SaveMeta {
   updatedAt: number;
 }
 
+export interface Board {
+  slots: Record<string, { x: number; y: number; pos: Pos }>;
+  roles: Record<string, { role: string; duty: string }>;
+}
+
 export interface State {
   club: Club;
   players: Player[];
   formation: string;
   lineup: Record<string, string>; // índice do slot -> id do jogador
+  board?: Board; // campo tático: posições livres e funções por slot
   chat: ChatMsg[];
 }
 
