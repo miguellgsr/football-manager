@@ -38,7 +38,7 @@ function Structured({ data, name }: { data: any; name: (id: string) => string })
           <p className="mute" style={{ fontSize: ".8rem", margin: "0 0 .3rem" }}>Confira na Busca de Jogadores do FM: clube, idade e atributos podem ser diferentes no seu save.</p>
           <table>
             <thead><tr><th>Jogador</th><th>Pos</th><th>Por quê</th><th>Atenção</th></tr></thead>
-            <tbody>{data.similarPlayers.map((p: any, i: number) => <tr key={i}><td><b>{p.name}</b><div className="mute" style={{ fontSize: ".8rem" }}>{p.approxClub}</div></td><td>{p.position}</td><td>{p.why}</td><td>{p.caution}</td></tr>)}</tbody>
+            <tbody>{data.similarPlayers.map((p: any, i: number) => <tr key={i}><td><b>{p.url ? <a href={p.url} target="_blank" rel="noreferrer">{p.name}</a> : p.name}</b><div className="mute" style={{ fontSize: ".8rem" }}>{p.approxClub}</div></td><td>{p.position}</td><td>{p.why}</td><td>{p.caution}</td></tr>)}</tbody>
           </table>
         </div>
       )}

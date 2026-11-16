@@ -1,4 +1,5 @@
 import { askJSON, guard, errorResponse } from "@/lib/ai";
+import { researchFmInside, wantsRecommendations } from "@/lib/fminside";
 
 export const maxDuration = 60;
 
@@ -16,11 +17,12 @@ Formato de saída (JSON). Só preencha os campos que fizerem sentido para a perg
 {
  "reply": string (resposta principal em texto, pode ter parágrafos curtos e usar quebras de linha),
  "needs": [{"position": string, "priority": "alta"|"media"|"baixa", "reason": string, "idealProfile": {"role": string, "keyAttributes": string[], "ageRange": string, "notes": string}, "searchFilters": string}],
- "similarPlayers": [{"name": string, "position": string, "approxClub": string, "why": string, "caution": string}],
+ "similarPlayers": [{"name": string, "position": string, "approxClub": string, "why": string, "caution": string, "url": string (opcional: página do fminside.net)}],
  "shortlistPicks": [{"playerId": string, "needPosition": string, "score": number, "why": string, "risks": string}],
  "sellOrRenew": [{"playerId": string, "action": "vender"|"renovar"|"emprestar"|"manter", "why": string}]
 }
 "searchFilters" é um texto curto com filtros sugeridos para a Busca de Jogadores do FM (posição, idade, atributos mínimos, contrato, valor).
+Se a mensagem trouxer "DADOS DO FMINSIDE", eles foram pesquisados agora em fminside.net: use-os como fonte principal dos candidatos (nome, idade, clube, contrato, valor, atributos) e preencha "url" quando houver; diga que a fonte é o FMInside. Cruze com o elenco do usuário e ranqueie. Não complete com dados da memória o que o FMInside não trouxe (marque como n/d). Se vier "FMINSIDE INDISPONÍVEL", avise isso em uma linha no "reply" e siga com sugestões da memória, marcadas como tal. Se o usuário mandou prints, os prints são a referência e o FMInside não é consultado.
 Só use "playerId" de jogadores existentes na shortlist ou no elenco enviados.`;
 
 export async function POST(req: Request) {
@@ -28,7 +30,15 @@ export async function POST(req: Request) {
   if (g) return g;
   try {
     const { message, images, history, ...context } = await req.json();
-    const text = `DADOS DO SAVE (JSON):\n${JSON.stringify(context)}\n\nMENSAGEM DO USUÁRIO:\n${message || "Analise meu elenco e diga o que falta."}`;
+    let fmi = "";
+    // sem prints e pedindo indicação: pesquisa ao vivo no FMInside
+    if (!(images?.length) && wantsRecommendations(message || "")) {
+      const players = (context.squad ?? context.players ?? []) as any[];
+      const ctx = `Formação: ${context.formation ?? "?"}. Clube: ${JSON.stringify(context.club ?? {})}. Elenco (posição/idade): ${players.slice(0, 40).map((p) => `${(p.positions ?? []).join("/")} ${p.age ?? "?"}`).join("; ")}`;
+      const r = await researchFmInside(message, ctx);
+      fmi = r.text ? `\n\nDADOS DO FMINSIDE (pesquisa feita agora em fminside.net):\n${r.text}` : `\n\nFMINSIDE INDISPONÍVEL (${r.error ?? "sem resultados"}).`;
+    }
+    const text = `DADOS DO SAVE (JSON):\n${JSON.stringify(context)}${fmi}\n\nMENSAGEM DO USUÁRIO:\n${message || "Analise meu elenco e diga o que falta."}`;
     const out = await askJSON({ system: SYSTEM, text, images, history, maxTokens: 7000 });
     return Response.json(out);
   } catch (e) {
